@@ -1,7 +1,7 @@
 # GPIO driver — implementation steps
 
 Work through these in order. Fill in `src/bdk_rcc.c` / `src/bdk_gpio.c` /
-`examples/01_blink/main.c` yourself from RM0090. This page is a checklist,
+`examples/gpio/blink/main.c` yourself from RM0090. This page is a checklist,
 not a register recipe.
 
 API already exists: `inc/bdk_gpio.h`, `inc/bdk_rcc.h`.
@@ -100,7 +100,7 @@ you know when they would not (open-drain, another driver on the net).
 
 ---
 
-## 7. `examples/01_blink/main.c`
+## 7. `examples/gpio/blink/main.c`
 
 Sequence in `main`:
 

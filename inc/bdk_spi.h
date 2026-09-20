@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "bdk_status.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -55,8 +57,9 @@ typedef struct {
 /**
  * @brief Configure SPI as a polling master.
  * @param config SPI configuration; must not be NULL.
+ * @return BDK_OK, or BDK_ERR_PARAM if @p config is invalid.
  */
-void bdk_spi_init(const bdk_spi_config_t *config);
+bdk_status_t bdk_spi_init(const bdk_spi_config_t *config);
 
 /**
  * @brief Shift one frame out and return the frame shifted in.

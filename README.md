@@ -23,17 +23,22 @@ cmake -S . -B build
 cmake --build build
 ```
 
-Outputs land in `build/examples/<name>/` (`*.elf`, `*.bin`, `*.hex`, `*.map`).
+Outputs land in `build/examples/<driver>/<app>/` (`*.elf`, `*.bin`, `*.hex`,
+`*.map`).
 
 ## Build one example on its own
 
 ```sh
-cmake -S examples/01_blink -B build-blink
+cmake -S examples/gpio/blink -B build-blink
 cmake --build build-blink
 ```
 
 That CMakeLists is intentionally small: import the SDK, `add_executable`,
 `target_link_libraries(... bdk_stm32f4)`, `bdk_add_extra_outputs`.
+
+Examples are grouped by driver (`examples/gpio/`, `examples/i2c/`, …). Each
+app can store oscilloscope or analyzer shots in `captures/` — see
+`examples/README.md`.
 
 ## Layout
 
@@ -44,7 +49,7 @@ That CMakeLists is intentionally small: import the SDK, `add_executable`,
 | `bdk_sdk_import.cmake` | The one file examples include |
 | `startup/`, `linker/` | Reset/vector table and F407VG memory map |
 | `cmsis/` | Unmodified CMSIS-Core + `stm32f407xx.h` (vendor headers, not HAL) |
-| `examples/` | Apps; start with `01_blink` |
+| `examples/<driver>/<app>/` | Apps; start with `examples/gpio/blink` |
 | `docs/notes/` | Per-peripheral notes written while reading the RM |
 
 ## Next

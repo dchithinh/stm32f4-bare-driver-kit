@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "bdk_status.h"
 #include "bdk_gpio.h"
 
 #ifdef __cplusplus
@@ -10,26 +11,18 @@ extern "C" {
 #endif
 
 /**
- * @brief Status codes used by clock setup.
- */
-typedef enum {
-    BDK_RCC_OK = 0,
-    BDK_RCC_ERR,
-    BDK_RCC_ERR_TIMEOUT
-} bdk_rcc_status_t;
-
-/**
  * @brief Configure the F407 system clock tree (HSE/HSI/PLL, AHB/APB prescalers).
  * @note Chip-specific. Do not assume this is valid on other F4 parts.
- * @return BDK_RCC_OK on success.
+ * @return BDK_OK on success, BDK_ERR_TIMEOUT if an oscillator/PLL does not lock.
  */
-bdk_rcc_status_t bdk_rcc_sysclk_init(void);
+bdk_status_t bdk_rcc_sysclk_init(void);
 
 /**
  * @brief Enable the AHB1 clock for a GPIO port.
  * @param port GPIO port whose clock to enable.
+ * @return BDK_OK, or BDK_ERR_PARAM if @p port is invalid or not implemented.
  */
-void bdk_rcc_gpio_clk_enable(bdk_gpio_port_t port);
+bdk_status_t bdk_rcc_gpio_clk_enable(bdk_gpio_port_t port);
 
 /**
  * @brief Enable USART/UART clock on APB1 or APB2 as appropriate.

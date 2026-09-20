@@ -2,9 +2,13 @@
 
 /* Bodies are intentionally empty. Implement from RM0090 USART (chapter 30). */
 
-void bdk_uart_init(const bdk_uart_config_t *config)
+bdk_status_t bdk_uart_init(const bdk_uart_config_t *config)
 {
+    if (config == NULL) {
+        return BDK_ERR_PARAM;
+    }
     (void)config;
+    return BDK_ERR;
 }
 
 void bdk_uart_write_byte(bdk_uart_id_t id, uint8_t byte)

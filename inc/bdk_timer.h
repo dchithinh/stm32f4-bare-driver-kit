@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "bdk_status.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -49,8 +51,9 @@ typedef struct {
 /**
  * @brief Configure the counter time base and leave the timer disabled.
  * @param config Time-base configuration; must not be NULL.
+ * @return BDK_OK, or BDK_ERR_PARAM if @p config is invalid.
  */
-void bdk_tim_init(const bdk_tim_config_t *config);
+bdk_status_t bdk_tim_init(const bdk_tim_config_t *config);
 
 /**
  * @brief Start the counter (CEN).

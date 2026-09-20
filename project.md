@@ -71,6 +71,7 @@ stm32f4-bare-driver-kit/
 │   ├── toolchain-arm-none-eabi.cmake   # cross-compiler toolchain file
 │   └── stm32f407.cmake                  # chip-specific flags, linker script, startup source
 ├── inc/
+│   ├── bdk_status.h
 │   ├── bdk_gpio.h
 │   ├── bdk_rcc.h
 │   ├── bdk_uart.h
@@ -90,18 +91,11 @@ stm32f4-bare-driver-kit/
 │   └── stm32f407.ld
 ├── cmsis/                          # unmodified CMSIS-Core + stm32f407xx.h (not HAL)
 ├── examples/
-│   ├── 01_blink/
-│   │   ├── CMakeLists.txt          # ~10 lines: include bdk_sdk_import.cmake, add_executable, link
-│   │   └── main.c
-│   ├── 02_uart_echo/
-│   │   ├── CMakeLists.txt
-│   │   └── main.c
-│   ├── 03_i2c_scanner/
-│   │   ├── CMakeLists.txt
-│   │   └── main.c
-│   └── 04_pwm_timer/
-│       ├── CMakeLists.txt
-│       └── main.c
+│   ├── CMakeLists.txt
+│   ├── gpio/blink/                 # plus README.md + captures/ for scope shots
+│   ├── uart/echo/
+│   ├── i2c/scanner/
+│   └── timer/pwm/
 ├── docs/
 │   └── notes/
 │       ├── gpio.md
@@ -115,7 +109,7 @@ stm32f4-bare-driver-kit/
 
 ```cmake
 cmake_minimum_required(VERSION 3.20)
-include(${CMAKE_CURRENT_LIST_DIR}/../../bdk_sdk_import.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../../bdk_sdk_import.cmake)
 
 project(blink C ASM)
 
@@ -134,7 +128,7 @@ copy-pasted into every example.
 
 0. CMake skeleton: toolchain file, top-level `CMakeLists.txt` defining the
    `bdk_stm32f4` library target, `bdk_sdk_import.cmake`, and a working
-   `01_blink` example project that at least builds an empty `main()` and
+   `examples/gpio/blink` example project that at least builds an empty `main()` and
    produces a `.bin`/`.hex` — this is boilerplate, fine to get AI help
    setting this up in full (see AI policy below)
 1. Minimal boot: startup file, vector table, linker script, clock init
@@ -211,6 +205,6 @@ point you to the relevant register table instead?"
 
 CMake skeleton is in place: toolchain file, top-level `bdk_stm32f4` library,
 `bdk_sdk_import.cmake`, linker/startup so an image actually links, and an
-empty `01_blink` that builds `.bin`/`.hex`. Driver `.c` files are **empty
+empty `examples/gpio/blink` that builds `.bin`/`.hex`. Driver `.c` files are **empty
 stubs** (signatures only). Next: `bdk_rcc` + `bdk_gpio` blink implemented
 from RM0090 and verified on oscilloscope.

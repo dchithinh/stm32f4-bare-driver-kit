@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "bdk_status.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -61,8 +63,9 @@ typedef struct {
 /**
  * @brief Configure and enable a USART/UART in polling mode.
  * @param config UART configuration; must not be NULL.
+ * @return BDK_OK, or BDK_ERR_PARAM if @p config is invalid.
  */
-void bdk_uart_init(const bdk_uart_config_t *config);
+bdk_status_t bdk_uart_init(const bdk_uart_config_t *config);
 
 /**
  * @brief Transmit one byte, blocking until the TX register is empty.

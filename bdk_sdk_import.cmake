@@ -2,14 +2,14 @@
 # One include, then the app only needs add_executable() +
 # target_link_libraries(... bdk_stm32f4).
 #
-# Typical usage (from examples/01_blink/CMakeLists.txt):
+# Typical usage (from examples/<driver>/<app>/CMakeLists.txt):
 #
 #   cmake_minimum_required(VERSION 3.20)
-#   include(${CMAKE_CURRENT_LIST_DIR}/../../bdk_sdk_import.cmake)
-#   project(blink C ASM)
-#   add_executable(blink main.c)
-#   target_link_libraries(blink bdk_stm32f4)
-#   bdk_add_extra_outputs(blink)
+#   include(${CMAKE_CURRENT_LIST_DIR}/../../../bdk_sdk_import.cmake)
+#   project(gpio_blink C ASM)
+#   add_executable(gpio_blink main.c)
+#   target_link_libraries(gpio_blink bdk_stm32f4)
+#   bdk_add_extra_outputs(gpio_blink)
 
 if (DEFINED ENV{BDK_SDK_PATH} AND NOT BDK_SDK_PATH)
     set(BDK_SDK_PATH "$ENV{BDK_SDK_PATH}")

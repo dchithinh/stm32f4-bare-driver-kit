@@ -1,16 +1,30 @@
 #include "bdk_rcc.h"
+#include "stm32f4xx.h"
 
-/* Bodies are intentionally empty. Implement from RM0090 RCC (chapter 7).
- * Sysclk setup is F407-specific (clock tree, PLL limits, USB 48 MHz). */
+static const uint32_t gpio_ahb1en[] = {
+    [BDK_GPIO_PORT_A] =  RCC_AHB1ENR_GPIOAEN,
+    [BDK_GPIO_PORT_B] =  RCC_AHB1ENR_GPIOBEN,
+    [BDK_GPIO_PORT_C] =  RCC_AHB1ENR_GPIOCEN,
+    [BDK_GPIO_PORT_D] =  RCC_AHB1ENR_GPIODEN,
+    [BDK_GPIO_PORT_E] =  RCC_AHB1ENR_GPIOEEN,
+    [BDK_GPIO_PORT_F] =  RCC_AHB1ENR_GPIOFEN,
+    [BDK_GPIO_PORT_G] =  RCC_AHB1ENR_GPIOGEN,
+    [BDK_GPIO_PORT_H] =  RCC_AHB1ENR_GPIOHEN,
+    [BDK_GPIO_PORT_I] =  RCC_AHB1ENR_GPIOIEN
+};
 
-bdk_rcc_status_t bdk_rcc_sysclk_init(void)
+bdk_status_t bdk_rcc_sysclk_init(void)
 {
-    return BDK_RCC_ERR;
+    return BDK_ERR;
 }
 
-void bdk_rcc_gpio_clk_enable(bdk_gpio_port_t port)
+bdk_status_t bdk_rcc_gpio_clk_enable(bdk_gpio_port_t port)
 {
-    (void)port;
+    if ((unsigned)port >= (sizeof gpio_ahb1en / sizeof gpio_ahb1en[0])) {
+        return BDK_ERR_PARAM;
+    }
+    SET_BIT(RCC->AHB1ENR, gpio_ahb1en[port]);
+    return BDK_OK;
 }
 
 void bdk_rcc_usart_clk_enable(uint8_t usart_index)

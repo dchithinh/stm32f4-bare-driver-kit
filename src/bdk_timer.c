@@ -1,10 +1,15 @@
+#include <stddef.h>
 #include "bdk_timer.h"
 
 /* Bodies are intentionally empty. Implement from RM0090 TIM (chapters 17–20). */
 
-void bdk_tim_init(const bdk_tim_config_t *config)
+bdk_status_t bdk_tim_init(const bdk_tim_config_t *config)
 {
+    if (config == NULL) {
+        return BDK_ERR_PARAM;
+    }
     (void)config;
+    return BDK_ERR;
 }
 
 void bdk_tim_start(bdk_tim_id_t id)
