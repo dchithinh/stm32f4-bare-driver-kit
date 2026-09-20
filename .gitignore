@@ -1,0 +1,27 @@
+# Build trees
+build/
+build-*/
+**/build/
+cmake-build-*/
+out/
+.cache/
+
+# Compile artifacts
+*.o
+*.a
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.d
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*~
+
+# Python / misc
+__pycache__/
+.DS_Store

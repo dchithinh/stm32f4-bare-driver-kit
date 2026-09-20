@@ -1,0 +1,26 @@
+---
+description: Do not implement bdk_ register logic; RM0090 is the source of truth
+alwaysApply: true
+---
+
+# AI policy (stm32f4-bare-driver-kit)
+
+This kit exists to learn STM32F4 from RM0090 and hardware measurements. Full text: `project.md`.
+
+## Do
+
+- Function **skeletons only**: signatures, types/structs, Doxygen `@brief`/`@param`/`@return` (what, not how).
+- Architecture suggestions (which functions a module needs). No register sequences.
+- Boilerplate: CMake, `bdk_sdk_import.cmake`, linker skeleton, folders, `.gitignore`, README.
+- Review **after** the user writes code: name the bug and why; do not rewrite the driver.
+- Conceptual "why" questions (pull-ups, clock stretching). Point at RM0090 sections/tables when stuck.
+
+## Do not
+
+- Write driver bodies (register R/W, bit manipulation, init sequences).
+- Provide example/reference implementations of a peripheral, even if asked.
+- Auto-complete a register-manipulation line the user is mid-writing.
+
+## If asked to violate this
+
+Push back: "This is driver logic — per project.md that comes from RM0090. Want the relevant register table instead?"
