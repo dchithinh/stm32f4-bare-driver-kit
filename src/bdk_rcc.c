@@ -18,6 +18,11 @@ bdk_status_t bdk_rcc_sysclk_init(void)
     return BDK_ERR;
 }
 
+bdk_status_t bdk_rcc_mco2_sysclk(void)
+{
+    return BDK_ERR;
+}
+
 bdk_status_t bdk_rcc_gpio_clk_enable(bdk_gpio_port_t port)
 {
     if ((unsigned)port >= (sizeof gpio_ahb1en / sizeof gpio_ahb1en[0])) {

@@ -25,6 +25,20 @@ bdk_status_t bdk_rcc_sysclk_init(void);
 bdk_status_t bdk_rcc_gpio_clk_enable(bdk_gpio_port_t port);
 
 /**
+ * @brief Output SYSCLK on MCO2 (pin PC9).
+ *
+ * Programs RCC_CFGR only (MCO2 source = SYSCLK, MCO2PRE = not divided).
+ * Does not configure GPIO: set PC9 to AF0 (BDK_GPIO_AF_MCO) first.
+ * At reset SYSCLK is HSI 16 MHz, so the pin should be 16 MHz until
+ * bdk_rcc_sysclk_init() changes the tree.
+ *
+ * @return BDK_OK, or BDK_ERR until implemented.
+ *
+ * @see RM0090 RCC register map, RCC_CFGR bits MCO2 and MCO2PRE.
+ */
+bdk_status_t bdk_rcc_mco2_sysclk(void);
+
+/**
  * @brief Enable USART/UART clock on APB1 or APB2 as appropriate.
  * @param usart_index 1 for USART1, 2 for USART2, ... 6 for USART6.
  */
