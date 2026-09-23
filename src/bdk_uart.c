@@ -93,8 +93,14 @@ void bdk_uart_write_byte(bdk_uart_id_t id, uint8_t byte)
 
 uint8_t bdk_uart_read_byte(bdk_uart_id_t id)
 {
-    (void)id;
-    return 0;
+    USART_TypeDef *regs = usart_regs(id);
+    if (regs == NULL) {
+        return 0;
+    }
+
+    while (READ_BIT(regs->SR, USART_SR_RXNE) == 0);
+    uint8_t byte = regs->DR;
+    return byte;
 }
 
 void bdk_uart_write(bdk_uart_id_t id, const uint8_t *data, size_t len)
@@ -106,6 +112,14 @@ void bdk_uart_write(bdk_uart_id_t id, const uint8_t *data, size_t len)
 
 int bdk_uart_rx_ready(bdk_uart_id_t id)
 {
-    (void)id;
+    USART_TypeDef *regs = usart_regs(id);
+    if (regs == NULL) {
+        return 0;
+    }
+
+    if (READ_BIT(regs->SR, USART_SR_RXNE) != 0) {
+        return 1;
+    }
+
     return 0;
 }
