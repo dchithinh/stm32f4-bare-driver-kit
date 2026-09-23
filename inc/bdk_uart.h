@@ -11,10 +11,10 @@ extern "C" {
 #endif
 
 /**
- * @brief USART/UART instance on the F407.
+ * @brief USART/UART instance
  */
 typedef enum {
-    BDK_UART_1 = 1,
+    BDK_UART_1 = 0,
     BDK_UART_2,
     BDK_UART_3,
     BDK_UART_4,
@@ -48,6 +48,16 @@ typedef enum {
     BDK_UART_PARITY_EVEN,
     BDK_UART_PARITY_ODD
 } bdk_uart_parity_t;
+
+/** Common bit rates in baud (not a register field). Any uint32_t is still valid. */
+#define BDK_UART_BAUD_9600     9600u
+#define BDK_UART_BAUD_19200    19200u
+#define BDK_UART_BAUD_38400    38400u
+#define BDK_UART_BAUD_57600    57600u
+#define BDK_UART_BAUD_115200   115200u
+#define BDK_UART_BAUD_230400   230400u
+#define BDK_UART_BAUD_460800   460800u
+#define BDK_UART_BAUD_921600   921600u
 
 /**
  * @brief UART configuration.

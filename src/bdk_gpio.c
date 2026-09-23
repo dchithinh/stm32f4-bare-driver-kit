@@ -9,7 +9,7 @@ static GPIO_TypeDef *const gpio_table[] = {
 
 static GPIO_TypeDef *gpio_regs(bdk_gpio_port_t port)
 {
-    unsigned n = (unsigned)(sizeof gpio_table / sizeof gpio_table[0]);
+    unsigned n = (unsigned)BDK_ARRAY_LEN(gpio_table);
 
     if ((unsigned)port >= n) {
         return NULL;

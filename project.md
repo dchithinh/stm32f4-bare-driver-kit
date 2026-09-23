@@ -93,7 +93,7 @@ stm32f4-bare-driver-kit/
 ├── examples/
 │   ├── CMakeLists.txt
 │   ├── gpio/blink/                 # plus README.md + captures/ for scope shots
-│   ├── uart/echo/
+│   ├── uart/tx/
 │   ├── i2c/scanner/
 │   └── timer/pwm/
 ├── docs/

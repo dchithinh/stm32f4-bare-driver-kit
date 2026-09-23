@@ -4,9 +4,9 @@ if (NOT TARGET bdk_stm32f4)
     include(${CMAKE_CURRENT_LIST_DIR}/../../../bdk_sdk_import.cmake)
 endif()
 
-project(uart_echo C ASM)
+project(uart_tx C ASM)
 
-add_executable(uart_echo main.c)
-target_link_libraries(uart_echo bdk_stm32f4)
+add_executable(uart_tx main.c)
+target_link_libraries(uart_tx bdk_stm32f4)
 
-bdk_add_extra_outputs(uart_echo)
+bdk_add_extra_outputs(uart_tx)

@@ -1,6 +1,8 @@
 #ifndef BDK_STATUS_H
 #define BDK_STATUS_H
 
+#include "bdk_util.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,6 +17,38 @@ typedef enum {
     BDK_ERR_TIMEOUT,  /**< Hardware did not become ready in time. */
     BDK_ERR_NACK      /**< I2C slave NACKed. */
 } bdk_status_t;
+
+/**
+ * @brief Halt if @p expr is false.
+ *
+ * Do not write `BDK_ASSERT(bdk_gpio_init(&cfg))`: `BDK_OK` is 0, so that
+ * treats success as failure. Use `BDK_ASSERT_OK(...)` or
+ * `BDK_ASSERT(bdk_gpio_init(&cfg) == BDK_OK)`.
+ *
+ * Define `BDK_NDEBUG` to compile the check out.
+ */
+#ifdef BDK_NDEBUG
+#define BDK_ASSERT(expr) ((void)0)
+#else
+#define BDK_ASSERT(expr)                                                       \
+    do {                                                                       \
+        if (!(expr)) {                                                         \
+            for (;;) {                                                         \
+            }                                                                  \
+        }                                                                      \
+    } while (0)
+#endif
+
+/**
+ * @brief Halt unless @p status_expr returns BDK_OK (PARAM, TIMEOUT, ERR, …).
+ *
+ * Example: `BDK_ASSERT_OK(bdk_gpio_init(&uart_tx));`
+ */
+#ifdef BDK_NDEBUG
+#define BDK_ASSERT_OK(status_expr) ((void)(status_expr))
+#else
+#define BDK_ASSERT_OK(status_expr) BDK_ASSERT((status_expr) == BDK_OK)
+#endif
 
 #ifdef __cplusplus
 }

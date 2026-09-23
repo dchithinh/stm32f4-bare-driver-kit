@@ -2,4 +2,4 @@
 
 | App | What |
 |-----|------|
-| [`echo`](echo/) | Placeholder — echo once `bdk_uart` exists |
+| [`tx`](tx/) | Polling TX (`HELLO!` on USART2 / PA2) |
