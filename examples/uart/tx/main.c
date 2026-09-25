@@ -37,13 +37,15 @@ int main(void)
     BDK_ASSERT_OK(bdk_uart_init(&uart2_cfg));
 
     for (;;) {
-        bdk_uart_write_byte(BDK_UART_2, 'H');
-        bdk_uart_write_byte(BDK_UART_2, 'E');
-        bdk_uart_write_byte(BDK_UART_2, 'L');
-        bdk_uart_write_byte(BDK_UART_2, 'L');
-        bdk_uart_write_byte(BDK_UART_2, 'O');
-        bdk_uart_write_byte(BDK_UART_2, '!');
-        bdk_uart_write_byte(BDK_UART_2, '\n');
+        // bdk_uart_write_byte(BDK_UART_2, 'H');
+        // bdk_uart_write_byte(BDK_UART_2, 'E');
+        // bdk_uart_write_byte(BDK_UART_2, 'L');
+        // bdk_uart_write_byte(BDK_UART_2, 'L');
+        // bdk_uart_write_byte(BDK_UART_2, 'O');
+        // bdk_uart_write_byte(BDK_UART_2, '!');
+        // bdk_uart_write_byte(BDK_UART_2, '\n');
+        static const uint8_t msg[] = "HELLO TO STM32F4!\n";
+        bdk_uart_write(BDK_UART_2, msg, sizeof(msg) - 1);
         for (int i = 0; i < 1500000; i++);
     }
 }

@@ -9,9 +9,13 @@ This kit exists to learn STM32F4 from RM0090 and hardware measurements. Full tex
 
 ## Do
 
-- Function **skeletons only**: signatures, types/structs, Doxygen `@brief`/`@param`/`@return` (what, not how).
+- Function **skeletons only**: signatures, types/structs, Doxygen per `.cursor/skills/bdk-driver-api/SKILL.md` (what the API does, not naming essays).
 - Architecture suggestions (which functions a module needs). No register sequences.
 - Boilerplate: CMake, `bdk_sdk_import.cmake`, linker skeleton, folders, `.gitignore`, README.
+- Public driver API: `bdk_status_t` for operations (including `poll_in`).
+  Chip `USARTx_IRQHandler` belongs in the **app**, which calls
+  `bdk_*_irq_handler(id)`. Use `poll_in` / `write_async`, not `try_read` / `nb_*`.
+  Do not define vector names in `src/bdk_*.c`.
 - Review **after** the user writes code: name the bug and why; do not rewrite the driver.
 - Conceptual "why" questions (pull-ups, clock stretching). Point at RM0090 sections/tables when stuck.
 

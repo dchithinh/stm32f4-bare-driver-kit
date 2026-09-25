@@ -15,7 +15,9 @@ typedef enum {
     BDK_ERR,          /**< Unspecified failure. */
     BDK_ERR_PARAM,    /**< NULL pointer, out-of-range id/pin/port. */
     BDK_ERR_TIMEOUT,  /**< Hardware did not become ready in time. */
-    BDK_ERR_NACK      /**< I2C slave NACKed. */
+    BDK_ERR_NACK,     /**< I2C slave NACKed. */
+    BDK_ERR_NODATA,   /**< Non-blocking read: no byte available. */
+    BDK_ERR_BUSY      /**< Async TX (or similar) already in progress. */
 } bdk_status_t;
 
 /**

@@ -1,6 +1,11 @@
 #ifndef BDK_UART_H
 #define BDK_UART_H
 
+/**
+ * @file bdk_uart.h
+ * @brief USART driver (polling and interrupt-driven RX/TX).
+ */
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -71,39 +76,91 @@ typedef struct {
 } bdk_uart_config_t;
 
 /**
- * @brief Configure and enable a USART/UART in polling mode.
- * @param config UART configuration; must not be NULL.
- * @return BDK_OK, or BDK_ERR_PARAM if @p config is invalid.
+ * @brief Apply @p config: clock, BRR, frame format, enable UE/TE/RE.
+ * @param config Must not be NULL.
+ * @return BDK_OK or BDK_ERR_PARAM.
  */
 bdk_status_t bdk_uart_init(const bdk_uart_config_t *config);
 
 /**
- * @brief Transmit one byte, blocking until the TX register is empty.
- * @param id   UART instance.
- * @param byte Byte to send.
+ * @brief Block until TXE, then write @p byte to DR.
+ * @param id UART instance.
  */
 void bdk_uart_write_byte(bdk_uart_id_t id, uint8_t byte);
 
 /**
- * @brief Receive one byte, blocking until data is available.
- * @param id UART instance.
- * @return The received byte.
+ * @brief Block until RXNE, then read one byte from DR.
+ * @param id   UART instance.
+ * @return Received byte; 0 if @p id is invalid.
  */
 uint8_t bdk_uart_read_byte(bdk_uart_id_t id);
 
 /**
- * @brief Transmit @p len bytes from @p data (polling).
+ * @brief Block until @p len bytes are read from DR into @p data.
  * @param id   UART instance.
- * @param data Buffer to send.
- * @param len  Number of bytes.
+ * @param data Out buffer; must not be NULL if @p len > 0.
+ * @param len  Byte count.
+ */
+void bdk_uart_read(bdk_uart_id_t id, uint8_t *data, size_t len);
+
+/**
+ * @brief Block until @p len bytes from @p data are written to DR.
+ * @param id   UART instance.
+ * @param data Must not be NULL if @p len > 0.
+ * @param len  Byte count.
  */
 void bdk_uart_write(bdk_uart_id_t id, const uint8_t *data, size_t len);
 
 /**
- * @brief True if the receive data register is not empty.
- * @param id UART instance.
+ * @brief Report whether RXNE is set in SR.
+ * @return 1 if set, 0 if clear or @p id is invalid.
  */
 int bdk_uart_rx_ready(bdk_uart_id_t id);
+
+/**
+ * @brief Enable NVIC for this USART and set RXNEIE; reset driver RX/TX state.
+ *
+ * The application must call @ref bdk_uart_irq_handler from the matching
+ * USARTx_IRQHandler vector.
+ *
+ * @param id USART instance.
+ * @return BDK_OK or BDK_ERR_PARAM.
+ */
+bdk_status_t bdk_uart_irq_enable(bdk_uart_id_t id);
+
+/**
+ * @brief Service RXNE (push DR into RX ring) and TXE (drain async TX buffer).
+ * @param id USART instance for this vector.
+ */
+void bdk_uart_irq_handler(bdk_uart_id_t id);
+
+/**
+ * @brief Queue @p data for transmit in the USART ISR (sets TXEIE until done).
+ *
+ * @p data must stay valid until @ref bdk_uart_tx_active is false. Only one
+ * outstanding transfer per @p id.
+ *
+ * @param id   USART instance.
+ * @param data Must not be NULL if @p len > 0.
+ * @param len  Byte count.
+ * @return BDK_OK, BDK_ERR_BUSY, or BDK_ERR_PARAM.
+ */
+bdk_status_t bdk_uart_write_async(bdk_uart_id_t id, const uint8_t *data,
+                                  size_t len);
+
+/**
+ * @brief Report whether an async TX started by @ref bdk_uart_write_async is running.
+ * @return 1 if active, 0 if idle or @p id is invalid.
+ */
+int bdk_uart_tx_active(bdk_uart_id_t id);
+
+/**
+ * @brief Copy one byte from the internal RX ring into @p byte if available.
+ * @param id   USART instance.
+ * @param byte Out; must not be NULL.
+ * @return BDK_OK, BDK_ERR_NODATA, or BDK_ERR_PARAM.
+ */
+bdk_status_t bdk_uart_poll_in(bdk_uart_id_t id, uint8_t *byte);
 
 #ifdef __cplusplus
 }

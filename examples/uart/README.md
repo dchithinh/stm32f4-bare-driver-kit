@@ -1,6 +1,10 @@
 # UART examples
 
+USART2 on **PA2** / **PA3** unless noted. API layers: `docs/notes/uart.md`.
+
 | App | What |
 |-----|------|
-| [`tx`](tx/) | Polling TX (`HELLO!` on USART2 / PA2) |
-| [`echo`](echo/) | Polling echo (PA3 RX → PA2 TX) |
+| [`tx`](tx/) | Polling TX (`bdk_uart_write`) |
+| [`echo`](echo/) | Polling echo (`read_byte` / `write_byte`) |
+| [`irq_echo`](irq_echo/) | RX IRQ (`poll_in`) + polling TX |
+| [`irq_tx`](irq_tx/) | TX IRQ (`write_async` + `tx_active`) |

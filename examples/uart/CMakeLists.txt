@@ -1,2 +1,4 @@
 add_subdirectory(tx)
 add_subdirectory(echo)
+add_subdirectory(irq_echo)
+add_subdirectory(irq_tx)
