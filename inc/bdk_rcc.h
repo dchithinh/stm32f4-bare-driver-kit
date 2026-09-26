@@ -21,7 +21,7 @@ bdk_status_t bdk_rcc_sysclk_init(void);
 /**
  * @brief Enable the AHB1 clock for a GPIO port.
  * @param port One of BDK_GPIO_PORT_A ... BDK_GPIO_PORT_I.
- * @return BDK_OK, or BDK_ERR_PARAM if @p port is out of range.
+ * @return BDK_OK or @ref BDK_ERR_RANGE.
  */
 bdk_status_t bdk_rcc_gpio_clk_enable(bdk_gpio_port_t port);
 
@@ -43,28 +43,28 @@ bdk_status_t bdk_rcc_mco2_sysclk(void);
  * @brief Enable USART/UART clock on APB1 or APB2 as appropriate.
  * @param id One of BDK_UART_1 ... BDK_UART_6 (enum, not the hardware instance
  *        number).
- * @return BDK_OK, or BDK_ERR_PARAM if @p id is out of range.
+ * @return BDK_OK or @ref BDK_ERR_RANGE.
  */
 bdk_status_t bdk_rcc_usart_clk_enable(bdk_uart_id_t id);
 
 /**
  * @brief Enable I2C clock on APB1.
  * @param i2c_index 1, 2, or 3.
- * @return BDK_OK, or BDK_ERR_PARAM if @p i2c_index is invalid.
+ * @return BDK_OK, @ref BDK_ERR_RANGE, or @ref BDK_ERR_NOT_IMPL.
  */
 bdk_status_t bdk_rcc_i2c_clk_enable(uint8_t i2c_index);
 
 /**
  * @brief Enable SPI clock on APB1 or APB2 as appropriate.
  * @param spi_index 1, 2, or 3.
- * @return BDK_OK, or BDK_ERR_PARAM if @p spi_index is invalid.
+ * @return BDK_OK, @ref BDK_ERR_RANGE, or @ref BDK_ERR_NOT_IMPL.
  */
 bdk_status_t bdk_rcc_spi_clk_enable(uint8_t spi_index);
 
 /**
  * @brief Enable TIMx clock.
  * @param tim_index Timer number (1..14 as present on F407).
- * @return BDK_OK, or BDK_ERR_PARAM if @p tim_index is invalid.
+ * @return BDK_OK, @ref BDK_ERR_RANGE, or @ref BDK_ERR_NOT_IMPL.
  */
 bdk_status_t bdk_rcc_tim_clk_enable(uint8_t tim_index);
 

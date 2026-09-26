@@ -51,7 +51,7 @@ typedef struct {
 /**
  * @brief Configure the counter time base and leave the timer disabled.
  * @param config Time-base configuration; must not be NULL.
- * @return BDK_OK, or BDK_ERR_PARAM if @p config is invalid.
+ * @return BDK_OK, @ref BDK_ERR_NULL, or @ref BDK_ERR_NOT_IMPL.
  */
 bdk_status_t bdk_tim_init(const bdk_tim_config_t *config);
 

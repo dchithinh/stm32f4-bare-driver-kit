@@ -8,17 +8,27 @@ extern "C" {
 #endif
 
 /**
- * @brief Common result codes for bdk_ init and transactions.
+ * @file bdk_status.h
+ * @brief Shared @ref bdk_status_t codes for @c bdk_* APIs and @ref bdk_status_str.
  */
+
 typedef enum {
-    BDK_OK = 0,       /**< Success. */
-    BDK_ERR,          /**< Unspecified failure. */
-    BDK_ERR_PARAM,    /**< NULL pointer, out-of-range id/pin/port. */
-    BDK_ERR_TIMEOUT,  /**< Hardware did not become ready in time. */
-    BDK_ERR_NACK,     /**< I2C slave NACKed. */
-    BDK_ERR_NODATA,   /**< Non-blocking read: no byte available. */
-    BDK_ERR_BUSY      /**< Async TX (or similar) already in progress. */
+    BDK_OK = 0,           /**< Success. */
+    BDK_ERR,              /**< Unspecified hardware or driver failure. */
+    BDK_ERR_NOT_IMPL,     /**< API stub; not implemented from RM yet. */
+    BDK_ERR_NULL,         /**< Required pointer argument was NULL. */
+    BDK_ERR_RANGE,        /**< Id, pin, stream, length, baud, or enum out of range. */
+    BDK_ERR_STATE,        /**< Invalid sequence or peripheral state for this call. */
+    BDK_ERR_BUSY,         /**< Resource in use (async TX, DMA stream, etc.). */
+    BDK_ERR_TIMEOUT,      /**< Hardware did not become ready in time. */
+    BDK_ERR_NACK,         /**< I2C slave NACKed. */
+    BDK_ERR_NODATA,       /**< Non-blocking read: no data available. */
 } bdk_status_t;
+
+/**
+ * @brief Short ASCII label for logging (e.g. with semihosting or a debug UART).
+ */
+const char *bdk_status_str(bdk_status_t status);
 
 /**
  * @brief Halt if @p expr is false.

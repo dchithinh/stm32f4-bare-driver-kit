@@ -16,9 +16,11 @@ endif()
 include("${BDK_SDK_PATH}/cmake/stm32f407.cmake")
 
 add_library(bdk_stm32f4 STATIC
+    src/bdk_status.c
     src/bdk_gpio.c
     src/bdk_rcc.c
     src/bdk_uart.c
+    src/bdk_dma.c
     src/bdk_i2c.c
     src/bdk_spi.c
     src/bdk_timer.c

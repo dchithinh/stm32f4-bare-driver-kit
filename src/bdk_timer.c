@@ -6,10 +6,10 @@
 bdk_status_t bdk_tim_init(const bdk_tim_config_t *config)
 {
     if (config == NULL) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_NULL;
     }
     (void)config;
-    return BDK_ERR;
+    return BDK_ERR_NOT_IMPL;
 }
 
 void bdk_tim_start(bdk_tim_id_t id)

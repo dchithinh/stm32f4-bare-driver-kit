@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "bdk_dma.h"
 #include "bdk_status.h"
 
 #ifdef __cplusplus
@@ -86,7 +87,7 @@ typedef struct {
 /**
  * @brief Apply @p config: clock, BRR, frame format, enable UE/TE/RE.
  * @param config Must not be NULL.
- * @return BDK_OK or BDK_ERR_PARAM.
+ * @return BDK_OK, @ref BDK_ERR_NULL, or @ref BDK_ERR_RANGE.
  */
 bdk_status_t bdk_uart_init(const bdk_uart_config_t *config);
 
@@ -132,7 +133,7 @@ int bdk_uart_rx_ready(bdk_uart_id_t id);
  * USARTx_IRQHandler vector.
  *
  * @param id USART instance.
- * @return BDK_OK or BDK_ERR_PARAM.
+ * @return BDK_OK or @ref BDK_ERR_RANGE.
  */
 bdk_status_t bdk_uart_irq_enable(bdk_uart_id_t id);
 
@@ -151,7 +152,7 @@ void bdk_uart_irq_handler(bdk_uart_id_t id);
  * @param id   USART instance.
  * @param data Must not be NULL if @p len > 0.
  * @param len  Byte count.
- * @return BDK_OK, BDK_ERR_BUSY, or BDK_ERR_PARAM.
+ * @return BDK_OK, @ref BDK_ERR_NULL, @ref BDK_ERR_RANGE, or @ref BDK_ERR_BUSY.
  */
 bdk_status_t bdk_uart_write_async(bdk_uart_id_t id, const uint8_t *data,
                                   size_t len);
@@ -166,7 +167,7 @@ int bdk_uart_tx_active(bdk_uart_id_t id);
  * @brief Copy one byte from the internal RX ring into @p byte if available.
  * @param id   USART instance.
  * @param byte Out; must not be NULL.
- * @return BDK_OK, BDK_ERR_NODATA, or BDK_ERR_PARAM.
+ * @return BDK_OK, @ref BDK_ERR_NULL, @ref BDK_ERR_RANGE, or @ref BDK_ERR_NODATA.
  */
 bdk_status_t bdk_uart_poll_in(bdk_uart_id_t id, uint8_t *byte);
 
@@ -174,16 +175,59 @@ bdk_status_t bdk_uart_poll_in(bdk_uart_id_t id, uint8_t *byte);
  * @brief Copy IRQ RX loss counters into @p stats.
  * @param id    USART instance.
  * @param stats Out; must not be NULL.
- * @return BDK_OK or BDK_ERR_PARAM.
+ * @return BDK_OK, @ref BDK_ERR_NULL, or @ref BDK_ERR_RANGE.
  */
 bdk_status_t bdk_uart_rx_stats_get(bdk_uart_id_t id, bdk_uart_rx_stats_t *stats);
 
 /**
  * @brief Zero @ref bdk_uart_rx_stats_t counters for @p id; does not flush the ring.
  * @param id USART instance.
- * @return BDK_OK or BDK_ERR_PARAM.
+ * @return BDK_OK or @ref BDK_ERR_RANGE.
  */
 bdk_status_t bdk_uart_rx_stats_reset(bdk_uart_id_t id);
+
+/**
+ * @brief DMA stream/channel mapping for one USART (from RM request table).
+ */
+typedef struct {
+    bdk_dma_stream_t tx_stream;
+    bdk_dma_stream_t rx_stream;
+    uint8_t          channel; /**< CHSEL for both directions of this USART */
+} bdk_uart_dma_t;
+
+/**
+ * @brief Remember TX/RX DMA streams for @p id (call before @ref bdk_uart_write_dma).
+ * @return BDK_OK, @ref BDK_ERR_NULL, @ref BDK_ERR_RANGE, or @ref BDK_ERR_NOT_IMPL.
+ */
+bdk_status_t bdk_uart_dma_bind(bdk_uart_id_t id, const bdk_uart_dma_t *dma);
+
+/**
+ * @brief Start DMA transmit of @p len bytes from @p data.
+ *
+ * Requires @ref bdk_uart_dma_bind, @ref bdk_dma_config on the TX stream, and
+ * USART CR3 DMAT. Completion via DMA TC IRQ
+ * (not USART TXE). @p data valid until @ref bdk_uart_dma_tx_active is false.
+ *
+ * @return BDK_OK, @ref BDK_ERR_BUSY, or other @ref bdk_status_t codes.
+ */
+bdk_status_t bdk_uart_write_dma(bdk_uart_id_t id, const uint8_t *data, size_t len);
+
+/**
+ * @brief Start DMA receive of @p len bytes into @p data (fixed count).
+ *
+ * Requires USART CR3 DMAR. On complete, DMA TC IRQ; check @ref bdk_uart_dma_rx_active.
+ */
+bdk_status_t bdk_uart_read_dma(bdk_uart_id_t id, uint8_t *data, size_t len);
+
+/**
+ * @brief Non-zero while @ref bdk_uart_write_dma is in progress.
+ */
+int bdk_uart_dma_tx_active(bdk_uart_id_t id);
+
+/**
+ * @brief Non-zero while @ref bdk_uart_read_dma is in progress.
+ */
+int bdk_uart_dma_rx_active(bdk_uart_id_t id);
 
 #ifdef __cplusplus
 }

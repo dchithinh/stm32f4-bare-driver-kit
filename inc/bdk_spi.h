@@ -57,7 +57,7 @@ typedef struct {
 /**
  * @brief Configure SPI as a polling master.
  * @param config SPI configuration; must not be NULL.
- * @return BDK_OK, or BDK_ERR_PARAM if @p config is invalid.
+ * @return BDK_OK, @ref BDK_ERR_NULL, or @ref BDK_ERR_NOT_IMPL.
  */
 bdk_status_t bdk_spi_init(const bdk_spi_config_t *config);
 

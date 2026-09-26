@@ -5,10 +5,10 @@
 bdk_status_t bdk_i2c_init(const bdk_i2c_config_t *config)
 {
     if (config == NULL) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_NULL;
     }
     (void)config;
-    return BDK_ERR;
+    return BDK_ERR_NOT_IMPL;
 }
 
 bdk_status_t bdk_i2c_write(bdk_i2c_id_t id, uint8_t addr,
@@ -18,7 +18,7 @@ bdk_status_t bdk_i2c_write(bdk_i2c_id_t id, uint8_t addr,
     (void)addr;
     (void)data;
     (void)len;
-    return BDK_ERR;
+    return BDK_ERR_NOT_IMPL;
 }
 
 bdk_status_t bdk_i2c_read(bdk_i2c_id_t id, uint8_t addr,
@@ -28,7 +28,7 @@ bdk_status_t bdk_i2c_read(bdk_i2c_id_t id, uint8_t addr,
     (void)addr;
     (void)data;
     (void)len;
-    return BDK_ERR;
+    return BDK_ERR_NOT_IMPL;
 }
 
 bdk_status_t bdk_i2c_write_read(bdk_i2c_id_t id, uint8_t addr,
@@ -41,5 +41,5 @@ bdk_status_t bdk_i2c_write_read(bdk_i2c_id_t id, uint8_t addr,
     (void)tx_len;
     (void)rx;
     (void)rx_len;
-    return BDK_ERR;
+    return BDK_ERR_NOT_IMPL;
 }

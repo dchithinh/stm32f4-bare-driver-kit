@@ -2,8 +2,9 @@
 name: bdk-driver-api
 description: >-
   Names and shapes bdk_ public APIs, and Doxygen style for inc/bdk_*.h.
-  Use when adding UART/I2C/SPI/GPIO functions, renaming APIs, designing IRQ vs
-  polling entry points, or writing/updating header comments.
+  Use when adding UART/I2C/SPI/GPIO/DMA functions, renaming APIs, designing IRQ
+  vs polling entry points, or writing/updating header comments. For SDK layering
+  and portability, also read bdk-library-design.
 ---
 
 # Public header Doxygen (`inc/bdk_*.h`)
@@ -13,10 +14,10 @@ other libraries.
 
 | Do | Do not |
 |----|--------|
-| One-line `@brief` (behavior) | Vendor/framework names, “style of …” |
-| `@param` / `@return` for inputs, outputs, errors | Long `@file` essays; put guides in `docs/notes/` |
+| `@brief` states behavior or purpose (length OK if still about *what*, not *why we chose names*) | Vendor/framework names, “style of …”, chatty tone |
+| `@param` / `@return` for inputs, outputs, errors | Policy, porting guides, RM tutorials in headers |
 | Short preconditions only when behavior depends on them (NULL rules, buffer lifetime, call order) | “Use X instead of Y” unless it is a hard contract |
-| `@file` → single-line module purpose | Register tutorials in the header (RM tables stay in notes / your learning) |
+| `@file` → what this header/module is for | Essays, checklists, extension rules (those live in skills / `docs/notes/`) |
 
 **Reference:** `inc/bdk_uart.h`.
 
@@ -61,7 +62,32 @@ Do **not** use: `try_read`, `try_write`, `nb_read`, `read_nonblock`, `get_char_i
 ## Status
 
 - **`BDK_OK` is 0.** Success is `== BDK_OK`, never `if (fn())`.
-- Predicates (`rx_ready`): `int` 0 / non-zero. Invalid id → 0, not -1.
+- Use **specific** `bdk_status_t` values (see `inc/bdk_status.h`); avoid a
+  single catch-all for arguments.
+
+| Code | Use |
+|------|-----|
+| `BDK_ERR_NULL` | Required pointer was NULL |
+| `BDK_ERR_RANGE` | Bad id, pin, stream index, length, baud, enum |
+| `BDK_ERR_STATE` | Wrong call order / peripheral state (e.g. DMA config while EN) |
+| `BDK_ERR_BUSY` | Async TX, DMA stream already active |
+| `BDK_ERR_NODATA` | `poll_in` ring empty |
+| `BDK_ERR_NOT_IMPL` | Skeleton not implemented yet |
+| `BDK_ERR` | Unspecified hardware failure after init |
+
+- Log strings: `bdk_status_str(status)` — extend the switch when adding enum values.
+
+### Extending `bdk_status_t`
+
+- One enum in `inc/bdk_status.h` for all drivers; no `bdk_uart_err_t` unless a
+  module needs many app-visible codes (rare).
+- Reuse shared codes (`BDK_ERR_NULL`, `BDK_ERR_RANGE`, `BDK_ERR_BUSY`, …) first.
+- Driver-only: append `BDK_ERR_DMA_*`, `BDK_ERR_I2C_*`, etc.; never renumber.
+- Optional comment bands in the enum (common / DMA / UART) only if the list grows large.
+- `bdk_status.h`: `@file` describes the shared result type; per-value `/**< */` only.
+  Extension rules stay in this skill, not in the header.
+- **Hardware predicates** (`rx_ready`, `dma_tx_active`): `int` 0 / non-zero.
+  Invalid id → 0, not -1.
 
 ## Example
 
@@ -73,3 +99,15 @@ if (bdk_uart_poll_in(BDK_UART_2, &c) == BDK_OK) {
 ```
 
 API shape only; do not write register bodies.
+
+## DMA
+
+| Role | Name / pattern |
+|------|----------------|
+| Stream setup (any peripheral) | `bdk_dma_config` (enables DMA1 or DMA2 RCC from `stream`), `bdk_dma_start`, `bdk_dma_stop`, `bdk_dma_busy`, `bdk_dma_tc_irq_enable`, `bdk_dma_irq_handler` |
+| USART ↔ DMA mapping (caller supplies RM table) | `bdk_uart_dma_bind`, `bdk_uart_dma_t`, then `bdk_uart_write_dma` / `read_dma` |
+| Stream id | `BDK_DMA1_STREAM(n)`, `BDK_DMA2_STREAM(n)`, or `BDK_DMA_STREAM(ctrl, n)` |
+| App IRQ | `DMAx_StreamN_IRQHandler` → `bdk_dma_irq_handler(BDK_DMAx_STREAM(n))` |
+
+Do **not** hardcode a single stream/channel inside `bdk_dma` or name the DMA
+module after one board. Details: `.cursor/skills/bdk-library-design/SKILL.md`.

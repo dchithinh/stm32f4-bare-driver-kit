@@ -99,12 +99,12 @@ static int uart_rx_push(bdk_uart_id_t id, uint8_t byte)
 static bdk_status_t uart_rx_pop(bdk_uart_id_t id, uint8_t *byte)
 {
     if (byte == NULL) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_NULL;
     }
 
     bdk_uart_rx_t *rx = uart_rx_get(id);
     if (rx == NULL) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
     
     if (rx->tail == rx->head) {
@@ -203,21 +203,24 @@ static uint32_t get_sysclk(void)
 
 bdk_status_t bdk_uart_init(const bdk_uart_config_t *config)
 {
-    if (config == NULL || config->baud == 0) {
-        return BDK_ERR_PARAM;
+    if (config == NULL) {
+        return BDK_ERR_NULL;
+    }
+    if (config->baud == 0) {
+        return BDK_ERR_RANGE;
     }
 
     if ((unsigned) config->id >= BDK_ARRAY_LEN(uart_table)) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
 
     if (bdk_rcc_usart_clk_enable(config->id) != BDK_OK) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
 
     USART_TypeDef *regs = usart_regs(config->id);
     if (regs == NULL) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
 
     /* OVER8 = 0: USARTDIV = f_CK / (16 * baud). BRR stores that in 1/16
@@ -225,7 +228,7 @@ bdk_status_t bdk_uart_init(const bdk_uart_config_t *config)
      * + baud/2 is round-to-nearest before integer divide. */
     uint32_t div = (get_sysclk() + (config->baud / 2)) / config->baud;
     if (div == 0 || div > 0xFFFF) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
     regs->BRR = (uint16_t) div;
 
@@ -240,7 +243,7 @@ bdk_status_t bdk_uart_init(const bdk_uart_config_t *config)
         } else if (config->parity == BDK_UART_PARITY_EVEN) {
             parity = 0;
         } else {
-            return BDK_ERR_PARAM;
+            return BDK_ERR_RANGE;
         }
 
         CLEAR_BIT(regs->CR1, USART_CR1_PS);
@@ -329,12 +332,12 @@ bdk_status_t bdk_uart_irq_enable(bdk_uart_id_t id)
 {
     USART_TypeDef *regs = usart_regs(id);
     if (regs == NULL) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
 
     IRQn_Type irqn = uart_irqn(id);
     if ((int)irqn < 0) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
 
     uart_rx_reset(id);
@@ -349,8 +352,11 @@ bdk_status_t bdk_uart_irq_enable(bdk_uart_id_t id)
 
 bdk_status_t bdk_uart_poll_in(bdk_uart_id_t id, uint8_t *byte)
 {
-    if (byte == NULL || (unsigned)id >= BDK_ARRAY_LEN(uart_table)) {
-        return BDK_ERR_PARAM;
+    if (byte == NULL) {
+        return BDK_ERR_NULL;
+    }
+    if ((unsigned)id >= BDK_ARRAY_LEN(uart_table)) {
+        return BDK_ERR_RANGE;
     }
 
     return uart_rx_pop(id, byte);
@@ -374,10 +380,13 @@ bdk_status_t bdk_uart_write_async(bdk_uart_id_t id, const uint8_t *data,
     bdk_uart_tx_t *tx   = uart_tx_get(id);
 
     if (regs == NULL || tx == NULL) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
-    if (data == NULL || len == 0) {
-        return BDK_ERR_PARAM;
+    if (data == NULL) {
+        return BDK_ERR_NULL;
+    }
+    if (len == 0) {
+        return BDK_ERR_RANGE;
     }
     if (tx->active != 0) {
         return BDK_ERR_BUSY;
@@ -406,8 +415,11 @@ bdk_status_t bdk_uart_rx_stats_get(bdk_uart_id_t id, bdk_uart_rx_stats_t *stats)
 {
     bdk_uart_rx_t *rx = uart_rx_get(id);
 
-    if (stats == NULL || rx == NULL) {
-        return BDK_ERR_PARAM;
+    if (stats == NULL) {
+        return BDK_ERR_NULL;
+    }
+    if (rx == NULL) {
+        return BDK_ERR_RANGE;
     }
 
     stats->ore_count       = rx->ore_count;
@@ -421,11 +433,51 @@ bdk_status_t bdk_uart_rx_stats_reset(bdk_uart_id_t id)
     bdk_uart_rx_t *rx = uart_rx_get(id);
 
     if (rx == NULL) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
 
     rx->ore_count       = 0;
     rx->ring_drop_count = 0;
 
     return BDK_OK;
+}
+
+bdk_status_t bdk_uart_dma_bind(bdk_uart_id_t id, const bdk_uart_dma_t *dma)
+{
+    if (dma == NULL) {
+        return BDK_ERR_NULL;
+    }
+    if (usart_regs(id) == NULL) {
+        return BDK_ERR_RANGE;
+    }
+    (void)dma;
+    return BDK_ERR_NOT_IMPL;
+}
+
+bdk_status_t bdk_uart_write_dma(bdk_uart_id_t id, const uint8_t *data, size_t len)
+{
+    (void)id;
+    (void)data;
+    (void)len;
+    return BDK_ERR_NOT_IMPL;
+}
+
+bdk_status_t bdk_uart_read_dma(bdk_uart_id_t id, uint8_t *data, size_t len)
+{
+    (void)id;
+    (void)data;
+    (void)len;
+    return BDK_ERR_NOT_IMPL;
+}
+
+int bdk_uart_dma_tx_active(bdk_uart_id_t id)
+{
+    (void)id;
+    return 0;
+}
+
+int bdk_uart_dma_rx_active(bdk_uart_id_t id)
+{
+    (void)id;
+    return 0;
 }

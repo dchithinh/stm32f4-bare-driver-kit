@@ -21,22 +21,25 @@ bdk_status_t bdk_gpio_init(const bdk_gpio_config_t *config)
 {
     GPIO_TypeDef *regs = NULL;
 
-    if (config == NULL || config->pin > 15) {
-        return BDK_ERR_PARAM;
+    if (config == NULL) {
+        return BDK_ERR_NULL;
+    }
+    if (config->pin > 15) {
+        return BDK_ERR_RANGE;
     }
 
     if (bdk_rcc_gpio_clk_enable(config->port) != BDK_OK) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
 
     regs = gpio_regs(config->port);
     if (regs == NULL) {
-        return BDK_ERR_PARAM;
+        return BDK_ERR_RANGE;
     }
 
     if (config->mode == BDK_GPIO_MODE_AF) {
         if ((unsigned)config->af > (unsigned)BDK_GPIO_AF_15) {
-            return BDK_ERR_PARAM;
+            return BDK_ERR_RANGE;
         }
 
         if (config->pin <= 7 ) {

@@ -11,6 +11,7 @@ This section documents the **bdk_uart** API shape (see `inc/bdk_uart.h`).
 | **IRQ setup** | `irq_enable`, app `USARTx_IRQHandler` → `irq_handler` | NVIC + **RXNEIE**; **TXEIE** only during async TX |
 | **IRQ RX (app)** | `poll_in` | One byte from **software ring**; no wait; `BDK_ERR_NODATA` if empty |
 | **IRQ TX (app)** | `write_async`, `tx_active` | Queue buffer; ISR sends on **TXE**; `BDK_ERR_BUSY` if already active |
+| **DMA** | `write_dma`, `read_dma`, `dma_tx_active`, `dma_rx_active` | DMA moves bytes; TC on **DMA** stream IRQ — see `docs/notes/dma.md` |
 
 `poll_in` is **not** “polling mode.” It **tries once** to read a byte the ISR
 already stored in the ring. There is no `poll_out` yet; bulk IRQ TX uses
@@ -26,7 +27,7 @@ already stored in the ring. There is no `poll_out` yet; bulk IRQ TX uses
 Echo with IRQ RX + IRQ TX: `poll_in` + `write_async` (keep buffer alive until
 `!tx_active`). IRQ RX + polling TX: `poll_in` + `write_byte` (see `irq_echo`).
 
-## RX overrun (your TODO)
+## RX overrun
 
 | Counter | Meaning | Where |
 |---------|---------|--------|

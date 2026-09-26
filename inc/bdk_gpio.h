@@ -169,7 +169,7 @@ typedef struct {
 /**
  * @brief Apply @p config to one pin (enables the port clock via bdk_rcc).
  * @param config Pin configuration; must not be NULL. pin must be 0..15.
- * @return BDK_OK, or BDK_ERR_PARAM if config/port/pin is invalid.
+ * @return BDK_OK, @ref BDK_ERR_NULL, or @ref BDK_ERR_RANGE.
  */
 bdk_status_t bdk_gpio_init(const bdk_gpio_config_t *config);
 
