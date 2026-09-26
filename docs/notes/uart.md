@@ -26,6 +26,19 @@ already stored in the ring. There is no `poll_out` yet; bulk IRQ TX uses
 Echo with IRQ RX + IRQ TX: `poll_in` + `write_async` (keep buffer alive until
 `!tx_active`). IRQ RX + polling TX: `poll_in` + `write_byte` (see `irq_echo`).
 
+## RX overrun (your TODO)
+
+| Counter | Meaning | Where |
+|---------|---------|--------|
+| `ore_count` | Hardware **ORE** — DR not read before next byte | Clear in `uart_rx_isr` per reference manual |
+| `ring_drop_count` | Software ring full (`uart_rx_push`) | Already incremented |
+
+App: `bdk_uart_rx_stats_get` / `bdk_uart_rx_stats_reset`. Counters cleared on
+`bdk_uart_irq_enable` (via `uart_rx_reset`).
+
+Implement in `uart_rx_isr`: after the RXNE loop, if **ORE** set → `ore_count++`,
+then flag clear sequence (typically read **SR**, read **DR**).
+
 ## Bring-up checklist (hardware)
 
 - Baud-rate formula vs PCLK (USART2 on APB1 when you add PLL), OVER8, BRR layout
@@ -39,3 +52,4 @@ Echo with IRQ RX + IRQ TX: `poll_in` + `write_async` (keep buffer alive until
 | `uart_echo` | polling | polling |
 | `uart_irq_echo` | IRQ + `poll_in` | polling `write_byte` |
 | `uart_irq_tx` | (unused) | IRQ + `write_async` |
+| `uart_ring_drop` | IRQ + paste test | — |

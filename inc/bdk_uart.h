@@ -76,6 +76,14 @@ typedef struct {
 } bdk_uart_config_t;
 
 /**
+ * @brief IRQ RX loss counters (since last @ref bdk_uart_irq_enable or stats reset).
+ */
+typedef struct {
+    uint32_t ore_count;        /**< USART SR ORE events handled in ISR. */
+    uint32_t ring_drop_count;  /**< Bytes dropped because the RX ring was full. */
+} bdk_uart_rx_stats_t;
+
+/**
  * @brief Apply @p config: clock, BRR, frame format, enable UE/TE/RE.
  * @param config Must not be NULL.
  * @return BDK_OK or BDK_ERR_PARAM.
@@ -129,7 +137,7 @@ int bdk_uart_rx_ready(bdk_uart_id_t id);
 bdk_status_t bdk_uart_irq_enable(bdk_uart_id_t id);
 
 /**
- * @brief Service RXNE (push DR into RX ring) and TXE (drain async TX buffer).
+ * @brief Service RX (RXNE ring + ORE), then TXE async drain.
  * @param id USART instance for this vector.
  */
 void bdk_uart_irq_handler(bdk_uart_id_t id);
@@ -161,6 +169,21 @@ int bdk_uart_tx_active(bdk_uart_id_t id);
  * @return BDK_OK, BDK_ERR_NODATA, or BDK_ERR_PARAM.
  */
 bdk_status_t bdk_uart_poll_in(bdk_uart_id_t id, uint8_t *byte);
+
+/**
+ * @brief Copy IRQ RX loss counters into @p stats.
+ * @param id    USART instance.
+ * @param stats Out; must not be NULL.
+ * @return BDK_OK or BDK_ERR_PARAM.
+ */
+bdk_status_t bdk_uart_rx_stats_get(bdk_uart_id_t id, bdk_uart_rx_stats_t *stats);
+
+/**
+ * @brief Zero @ref bdk_uart_rx_stats_t counters for @p id; does not flush the ring.
+ * @param id USART instance.
+ * @return BDK_OK or BDK_ERR_PARAM.
+ */
+bdk_status_t bdk_uart_rx_stats_reset(bdk_uart_id_t id);
 
 #ifdef __cplusplus
 }

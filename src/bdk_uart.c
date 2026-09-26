@@ -8,7 +8,8 @@ typedef struct {
     uint8_t             buf[BDK_UART_RX_BUF_SZ];
     volatile uint16_t   head;    /* ISR writes here (next free slot) */
     volatile uint16_t   tail;    /* App reads here (next byte to deliver) */
-    volatile uint32_t   drop_count;
+    volatile uint32_t   ore_count;
+    volatile uint32_t   ring_drop_count;
 } bdk_uart_rx_t;
 
 typedef struct {
@@ -33,6 +34,18 @@ static const IRQn_Type uart_irq_table[] = {
 
 static bdk_uart_rx_t uart_rx[BDK_ARRAY_LEN(uart_table)];
 static bdk_uart_tx_t uart_tx[BDK_ARRAY_LEN(uart_table)];
+
+static IRQn_Type uart_irqn(bdk_uart_id_t id);
+static bdk_uart_rx_t *uart_rx_get(bdk_uart_id_t id);
+static void uart_rx_reset(bdk_uart_id_t id);
+static int uart_rx_push(bdk_uart_id_t id, uint8_t byte);
+static bdk_status_t uart_rx_pop(bdk_uart_id_t id, uint8_t *byte);
+static void uart_rx_isr(bdk_uart_id_t id, USART_TypeDef *regs);
+static bdk_uart_tx_t *uart_tx_get(bdk_uart_id_t id);
+static void uart_tx_reset(bdk_uart_id_t id);
+static void uart_tx_isr(bdk_uart_id_t id, USART_TypeDef *regs);
+static USART_TypeDef *usart_regs(bdk_uart_id_t id);
+static uint32_t get_sysclk(void);
 
 static IRQn_Type uart_irqn(bdk_uart_id_t id)
 {
@@ -60,7 +73,8 @@ static void uart_rx_reset(bdk_uart_id_t id)
 
     rx->head = 0;
     rx->tail = 0;
-    rx->drop_count = 0;
+    rx->ore_count = 0;
+    rx->ring_drop_count = 0;
 }
 
 static int uart_rx_push(bdk_uart_id_t id, uint8_t byte)
@@ -72,8 +86,7 @@ static int uart_rx_push(bdk_uart_id_t id, uint8_t byte)
     }
     next = (rx->head + 1) % BDK_UART_RX_BUF_SZ;
     if (next == rx->tail) {
-        /*TODO: Buffer full, what to do*/
-        rx->drop_count++;
+        rx->ring_drop_count++;
         return 0;
     }
 
@@ -103,6 +116,53 @@ static bdk_status_t uart_rx_pop(bdk_uart_id_t id, uint8_t *byte)
 
     return BDK_OK;
 }
+
+static void uart_rx_isr(bdk_uart_id_t id, USART_TypeDef *regs)
+{
+    bdk_uart_rx_t *rx = uart_rx_get(id);
+    if (rx == NULL) {
+        return;
+    }
+
+    while (READ_BIT(regs->SR, USART_SR_RXNE) != 0) {
+        uart_rx_push(id, (uint8_t)regs->DR);
+    }
+
+    /* If USART_SR_RXNE == 0, and USART_SR_ORE == 1 overrun, 
+    *  We need to clear ORE
+    */
+    if (READ_BIT(regs->SR, USART_SR_ORE) != 0) {
+        rx->ore_count++;
+        /*Clear ORE*/
+
+        (void)regs->SR;
+        (void)regs->DR;
+    }
+
+    /*RXNE can be set while still in this IRQ run*/
+    while (READ_BIT(regs->SR, USART_SR_RXNE) != 0) {
+        uart_rx_push(id, (uint8_t)regs->DR);
+    }
+}
+
+static void uart_tx_isr(bdk_uart_id_t id, USART_TypeDef *regs)
+{
+    bdk_uart_tx_t *tx = uart_tx_get(id);
+    if (tx == NULL) {
+        return;
+    }
+
+    if (tx->active != 0) {
+        while (READ_BIT(regs->SR, USART_SR_TXE) != 0 && tx->idx < tx->len) {
+            regs->DR = tx->data[tx->idx++];
+        }
+        if (tx->idx >= tx->len) {
+            tx->active = 0;
+            CLEAR_BIT(regs->CR1, USART_CR1_TXEIE);
+        }
+    }
+}
+
 
 static bdk_uart_tx_t *uart_tx_get(bdk_uart_id_t id)
 {
@@ -134,7 +194,7 @@ static USART_TypeDef *usart_regs(bdk_uart_id_t id)
     return uart_table[id];
 }
 
-static uint32_t get_sysclk()
+static uint32_t get_sysclk(void)
 {
     /*TODO: Update this func when support sysclk configuration*/
     extern uint32_t SystemCoreClock;
@@ -299,24 +359,12 @@ bdk_status_t bdk_uart_poll_in(bdk_uart_id_t id, uint8_t *byte)
 void bdk_uart_irq_handler(bdk_uart_id_t id)
 {
     USART_TypeDef *regs = usart_regs(id);
-    bdk_uart_tx_t *tx = uart_tx_get(id);
-    if (regs == NULL || tx == NULL) {
+    if (regs == NULL) {
         return;
     }
 
-    while (READ_BIT(regs->SR, USART_SR_RXNE) != 0) {
-        uart_rx_push(id, (uint8_t)regs->DR);
-    }
-
-    if (tx->active != 0) {
-        while (READ_BIT(regs->SR, USART_SR_TXE) != 0 && tx->idx < tx->len) {
-            regs->DR = tx->data[tx->idx++];
-        }
-        if (tx->idx >= tx->len) {
-            tx->active = 0;
-            CLEAR_BIT(regs->CR1, USART_CR1_TXEIE);
-        }
-    }
+    uart_rx_isr(id, regs);
+    uart_tx_isr(id, regs);
 }
 
 bdk_status_t bdk_uart_write_async(bdk_uart_id_t id, const uint8_t *data,
@@ -352,4 +400,32 @@ int bdk_uart_tx_active(bdk_uart_id_t id)
     }
 
     return tx->active != 0;
+}
+
+bdk_status_t bdk_uart_rx_stats_get(bdk_uart_id_t id, bdk_uart_rx_stats_t *stats)
+{
+    bdk_uart_rx_t *rx = uart_rx_get(id);
+
+    if (stats == NULL || rx == NULL) {
+        return BDK_ERR_PARAM;
+    }
+
+    stats->ore_count       = rx->ore_count;
+    stats->ring_drop_count = rx->ring_drop_count;
+
+    return BDK_OK;
+}
+
+bdk_status_t bdk_uart_rx_stats_reset(bdk_uart_id_t id)
+{
+    bdk_uart_rx_t *rx = uart_rx_get(id);
+
+    if (rx == NULL) {
+        return BDK_ERR_PARAM;
+    }
+
+    rx->ore_count       = 0;
+    rx->ring_drop_count = 0;
+
+    return BDK_OK;
 }
