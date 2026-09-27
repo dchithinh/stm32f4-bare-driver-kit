@@ -27,6 +27,7 @@ Build from `build/`: `cmake --build . --target <app_target>` (target name in eac
 | `uart_dma` | [`uart/dma`](uart/dma/) | **`bdk_uart_write_dma`** (stub) | API links; `BDK_ERR_NOT_IMPL` until UART DMA layer exists |
 | `uart_dma_poll` | [`uart/dma_poll`](uart/dma_poll/) | Raw **DMA** TX, no TC IRQ | Must **`bdk_dma_busy()`**; prints `busy_poll_loops` |
 | `uart_dma_irq` | [`uart/dma_irq`](uart/dma_irq/) | Raw **DMA** TX + TC IRQ | Main waits on **`dma_tx_done`**; never polls **`bdk_dma_busy()`** |
+| `dma_m2m` | [`dma/m2m`](dma/m2m/) | **Mem→mem** DMA + TC IRQ | Hex dump before/after; **`mismatches=0`**; wait on **`dma_m2m_done`** |
 | `i2c_scanner` | [`i2c/scanner`](i2c/scanner/) | I2C scan (placeholder) | Build only today; future: address list on bus |
 | `timer_pwm` | [`timer/pwm`](timer/pwm/) | PWM (placeholder) | Build only today; future: duty/frequency on scope |
 

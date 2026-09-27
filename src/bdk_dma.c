@@ -219,12 +219,11 @@ bdk_status_t bdk_dma_config(const bdk_dma_config_t *cfg)
     CLEAR_BIT(s->CR, DMA_SxCR_DIR);
     SET_BIT(s->CR, (uint32_t)(cfg->direction << DMA_SxCR_DIR_Pos) & DMA_SxCR_DIR_Msk);
 
-    if (cfg->direction != BDK_DMA_MEM_TO_MEM) {
-        if (cfg->periph_addr == NULL) {
-            return BDK_ERR_NULL;
-        }
-        WRITE_REG(s->PAR, (uint32_t)(uintptr_t)cfg->periph_addr);
+    if (cfg->periph_addr == NULL) {
+        return BDK_ERR_NULL;
     }
+    /* Periph↔mem: PAR = peripheral. M2M: PAR = source; M0AR = dest in bdk_dma_start. */
+    WRITE_REG(s->PAR, (uint32_t)(uintptr_t)cfg->periph_addr);
 
     CLEAR_BIT(s->CR, DMA_SxCR_PINC);
     SET_BIT(s->CR, (uint32_t)(cfg->periph_inc << DMA_SxCR_PINC_Pos) & DMA_SxCR_PINC_Msk);

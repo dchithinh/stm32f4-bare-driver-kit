@@ -89,6 +89,13 @@ No USART **TXEIE**, no DMA IRQ yet. Serial should show the buffer.
 
 
 
+### M2M lab (`examples/dma/m2m`)
+
+- `direction = BDK_DMA_MEM_TO_MEM`; **PAR** = source, **M0AR** = destination in `bdk_dma_start`.
+- **PINC** + **MINC**, byte **PSIZE**/**MSIZE**; no peripheral **DMAT**.
+- Example uses **DMA2 stream 0** so it does not share DMA1 stream 6 with USART2 TX labs.
+- TC IRQ: `DMA2_Stream0_IRQHandler` → `bdk_dma_irq_handler`; main waits on `dma_m2m_done`.
+
 ### 5. RX (after TX)
 
 - Stream5, periph→mem, **DMAR**; `DMA1_Stream5_IRQHandler`; `read_dma` / `dma_rx_active`. See `uart.md` for **ORE**.

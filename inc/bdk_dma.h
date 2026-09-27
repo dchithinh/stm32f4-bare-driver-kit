@@ -63,7 +63,7 @@ typedef struct {
     bdk_dma_stream_t stream;
     uint8_t          channel;   /**< CHSEL: 0–7, from RM request mapping table */
     bdk_dma_dir_t    direction;
-    volatile void   *periph_addr; /**< Fixed address for periph↔mem; unused for mem↔mem */
+    volatile void   *periph_addr; /**< Periph DR (periph↔mem); source for mem↔mem */
     uint8_t          periph_inc;  /**< 0 = fixed (typical DR), 1 = increment */
     uint8_t          mem_inc;     /**< 1 to walk the memory buffer */
     bdk_dma_width_t  periph_width;
@@ -89,6 +89,8 @@ bdk_status_t bdk_dma_config(const bdk_dma_config_t *cfg);
 
 /**
  * @brief Start a transfer of @p len items (item size = mem_width in config).
+ *
+ * Mem→periph: @p mem is source. Mem→mem: @p mem is destination (source in config PAR).
  * @return BDK_OK, @ref BDK_ERR_NULL, @ref BDK_ERR_RANGE, @ref BDK_ERR_BUSY,
  *         or @ref BDK_ERR_NOT_IMPL.
  */
