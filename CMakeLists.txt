@@ -15,6 +15,10 @@ endif()
 
 include("${BDK_SDK_PATH}/cmake/stm32f407.cmake")
 
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Debug or Release" FORCE)
+endif()
+
 add_library(bdk_stm32f4 STATIC
     src/bdk_status.c
     src/bdk_gpio.c
@@ -52,6 +56,8 @@ target_compile_options(bdk_stm32f4 PUBLIC
     -Wall
     -Wextra
     $<$<COMPILE_LANGUAGE:C>:-std=c11>
+    $<$<CONFIG:Debug>:-g3 -Og>
+    $<$<CONFIG:Release>:-Os>
 )
 
 target_link_options(bdk_stm32f4 PUBLIC
