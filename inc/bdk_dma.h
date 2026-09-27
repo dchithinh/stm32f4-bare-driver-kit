@@ -18,6 +18,11 @@ extern "C" {
 /** Streams per controller (RM: 0–7 on DMA1 and on DMA2). */
 #define BDK_DMA_STREAM_COUNT 8U
 
+/** @ref bdk_dma_irq_enable interrupt selection (OR together). */
+#define BDK_DMA_IT_TC (1u << 0) /**< Transfer complete → **TCIE** */
+#define BDK_DMA_IT_TE (1u << 1) /**< Transfer error → **TEIE** */
+#define BDK_DMA_IT_MASK (BDK_DMA_IT_TC | BDK_DMA_IT_TE)
+
 typedef enum {
     BDK_DMA1 = 0,
     BDK_DMA2,
@@ -87,27 +92,31 @@ bdk_status_t bdk_dma_config(const bdk_dma_config_t *cfg);
  * @return BDK_OK, @ref BDK_ERR_NULL, @ref BDK_ERR_RANGE, @ref BDK_ERR_BUSY,
  *         or @ref BDK_ERR_NOT_IMPL.
  */
-bdk_status_t bdk_dma_start(bdk_dma_stream_t stream, const void *mem, size_t len);
+bdk_status_t bdk_dma_start(const bdk_dma_stream_t *stream, const void *mem, size_t len);
 
 /**
  * @brief Stop stream and clear enable (abort).
  */
-bdk_status_t bdk_dma_stop(bdk_dma_stream_t stream);
+bdk_status_t bdk_dma_stop(const bdk_dma_stream_t *stream);
 
 /**
  * @brief Non-zero while stream enable is set for an active transfer.
  */
-int bdk_dma_busy(bdk_dma_stream_t stream);
+int bdk_dma_busy(const bdk_dma_stream_t *stream);
 
 /**
- * @brief Enable transfer-complete interrupt for @p stream (NVIC + DMA TC IE).
+ * @brief Enable DMA stream interrupts selected in @p its (@ref BDK_DMA_IT_TC, @ref BDK_DMA_IT_TE).
+ *
+ * Sets the matching **TCIE** / **TEIE** bits on `SxCR` and enables the stream NVIC line.
+ * Additive: bits already enabled are left set. @p its must be non-zero and only use @ref BDK_DMA_IT_MASK.
+ * @return BDK_OK, @ref BDK_ERR_NULL, or @ref BDK_ERR_RANGE.
  */
-bdk_status_t bdk_dma_tc_irq_enable(bdk_dma_stream_t stream);
+bdk_status_t bdk_dma_irq_enable(const bdk_dma_stream_t *stream, uint32_t its);
 
 /**
- * @brief DMA stream IRQ body (TC flag). Call from DMAx_StreamN_IRQHandler in app.
+ * @brief DMA stream IRQ body (TC and TE flags). Call from DMAx_StreamN_IRQHandler in app.
  */
-void bdk_dma_irq_handler(bdk_dma_stream_t stream);
+void bdk_dma_irq_handler(const bdk_dma_stream_t *stream);
 
 #ifdef __cplusplus
 }

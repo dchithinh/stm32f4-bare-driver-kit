@@ -1,11 +1,14 @@
 # Timer PWM
 
-Verify duty cycle and frequency on an oscilloscope once `bdk_timer` exists.
+## Purpose
 
-## Captures
+**Placeholder** for PWM output once **`bdk_timer`** exists.
 
-Scope screenshots go in `captures/`. Example:
+## What it proves
 
-```markdown
-![PWM](captures/pwm.png)
-```
+- **Today:** empty `main` — build target only.
+- **Target:** stable frequency and adjustable duty on a GPIO/timer channel.
+
+## Build
+
+`cmake --build build --target timer_pwm`

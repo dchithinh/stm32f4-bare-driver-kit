@@ -1,9 +1,22 @@
 # UART ring_drop test
 
-USART2 **PA2/PA3**, **115200**, RX IRQ on. **5 s countdown** — main does not call `poll_in`; ISR fills the 64-byte ring.
+## Purpose
 
-**Tera Term only:** paste 128+ characters (avoid Enter if you want exactly 128 bytes).
+Stress the **IRQ RX ring** (64 bytes): bytes arrive faster than main reads them.
 
-Build: `cmake --build build --target uart_ring_drop`
+## What it proves
 
-After countdown: `ring_drop=…` (about **sent − 63** for one fast paste; `ore` should stay **0**).
+- **`ring_drop_count`** increases when more than 64 bytes arrive before `poll_in` consumes them (drops, not UART **ORE** if the ring is the bottleneck).
+- **`ore_count`** should stay 0 for a clean paste test; driver reports both via `bdk_uart_rx_stats_get`.
+
+## How to run
+
+**115200** 8N1. After a **5 s** countdown, paste **128+** characters quickly in Tera Term (avoid extra Enter if you want a fixed byte count).
+
+## Expected
+
+After countdown, one line like `ring_drop=N  (ore=M)` — **N** should be **> 0** for a long fast paste; **M** stays 0 if the UART itself did not overrun.
+
+## Build
+
+`cmake --build build --target uart_ring_drop`

@@ -3,8 +3,9 @@ name: bdk-library-design
 description: >-
   Layering and portability for stm32f4-bare-driver-kit as a developer SDK (CMake
   bdk_stm32f4). Use when adding DMA, RCC, drivers, examples, or docs; when APIs
-  might bake in a board, USART instance, or F407-only tables; or when splitting
-  generic hardware control from app/chip configuration.
+  might bake in a board, USART instance, or F407-only tables; when splitting
+  generic hardware control from app/chip configuration; or when refactoring
+  driver code (minimal diff only).
 ---
 
 # BDK as a developer library
@@ -60,6 +61,18 @@ is the same; **chip and board facts** belong in app config, bind structs, or
 - One library target `bdk_stm32f4`; examples stay thin (`add_executable` +
   `target_link_libraries`). Document **F407-first** and porting (CMSIS, linker,
   startup) in `README.md` — do not imply “F4” means zero porting work.
+
+## Refactoring
+
+- Change **only** what the task requires (structure, rename, extract helper,
+  fix a bug tied to the task).
+- Do **not** fold in out-of-scope edits: whitespace, alignment, brace style,
+  comment rewording, reordering unrelated functions, “cleanup” in untouched
+  functions, or project-wide format passes.
+- Match **existing** style in the touched lines; do not normalize the whole file
+  to a different style.
+- If unrelated issues are visible, mention them in review — do not fix unless
+  the user asks.
 
 ## Checklist before merging API or skeleton changes
 

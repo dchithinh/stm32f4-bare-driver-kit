@@ -104,10 +104,10 @@ API shape only; do not write register bodies.
 
 | Role | Name / pattern |
 |------|----------------|
-| Stream setup (any peripheral) | `bdk_dma_config` (enables DMA1 or DMA2 RCC from `stream`), `bdk_dma_start`, `bdk_dma_stop`, `bdk_dma_busy`, `bdk_dma_tc_irq_enable`, `bdk_dma_irq_handler` |
+| Stream setup (any peripheral) | `bdk_dma_config`, `bdk_dma_start`, `bdk_dma_stop`, `bdk_dma_busy`, `bdk_dma_irq_enable` (`BDK_DMA_IT_TC` \| `BDK_DMA_IT_TE`), `bdk_dma_irq_handler` |
 | USART ↔ DMA mapping (caller supplies RM table) | `bdk_uart_dma_bind`, `bdk_uart_dma_t`, then `bdk_uart_write_dma` / `read_dma` |
 | Stream id | `BDK_DMA1_STREAM(n)`, `BDK_DMA2_STREAM(n)`, or `BDK_DMA_STREAM(ctrl, n)` |
-| App IRQ | `DMAx_StreamN_IRQHandler` → `bdk_dma_irq_handler(BDK_DMAx_STREAM(n))` |
+| App IRQ | `DMAx_StreamN_IRQHandler` → `bdk_dma_irq_handler(&stream)` |
 
 Do **not** hardcode a single stream/channel inside `bdk_dma` or name the DMA
 module after one board. Details: `.cursor/skills/bdk-library-design/SKILL.md`.

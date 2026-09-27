@@ -6,7 +6,8 @@ endif()
 
 project(uart_dma_poll C ASM)
 
-add_executable(uart_dma_poll main.c)
+add_executable(uart_dma_poll main.c ../dma_lab_common.c)
+target_include_directories(uart_dma_poll PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_link_libraries(uart_dma_poll bdk_stm32f4)
 
 bdk_add_extra_outputs(uart_dma_poll)

@@ -1,21 +1,35 @@
 # Examples
 
-Grouped by **driver**, then by **app**. Each app can keep scope / logic-analyzer
-shots in `captures/` and embed them in that app’s `README.md`.
+Grouped by **driver**, then by **app**. Each app’s `README.md` has **Purpose** and **What it proves** in detail.
 
 ```
 examples/
-  <driver>/              # gpio, uart, i2c, spi, timer, …
-    CMakeLists.txt       # add_subdirectory(<app>) for every app
+  <driver>/
     <app>/
-      CMakeLists.txt
       main.c
-      README.md          # setup, probe points, measurements
-      captures/          # .png / .jpg from the scope or analyzer
+      README.md
+      captures/
 ```
 
-Add a driver: create `examples/<driver>/`, add `add_subdirectory(<driver>)` in
-`examples/CMakeLists.txt`, then add apps the same way under that driver.
+Build from `build/`: `cmake --build . --target <app_target>` (target name in each README).
 
-New app CMakeLists is the usual ~10 lines (`bdk_sdk_import.cmake` is three
-levels up: `examples/<driver>/<app>/`).
+## Index
+
+| Target | App | Purpose | What it proves |
+|--------|-----|---------|----------------|
+| `gpio_blink` | [`gpio/blink`](gpio/blink/) | GPIO output + toggle | PD12/PD14 LEDs blink (~1 s); GPIO clock and pin config work |
+| `rcc_mco` | [`rcc/mco`](rcc/mco/) | Route **SYSCLK** to **MCO2** (PC9) | ~16 MHz on PC9 (HSI); RCC mux, not GPIO toggling |
+| `uart_tx` | [`uart/tx`](uart/tx/) | Polling **TX** (`bdk_uart_write`) | `HELLO!` on USART2 @ 9600 |
+| `uart_echo` | [`uart/echo`](uart/echo/) | Polling RX + TX echo | Typed characters echo on PA2/PA3 |
+| `uart_irq_echo` | [`uart/irq_echo`](uart/irq_echo/) | **RXNE** IRQ + `poll_in` | RX without polling **RXNE** in main; same echo as `echo` at human speed |
+| `uart_irq_tx` | [`uart/irq_tx`](uart/irq_tx/) | **TXE** IRQ + `write_async` | `ping` lines ~1 Hz without spinning on **TXE** in main |
+| `uart_ring_drop` | [`uart/ring_drop`](uart/ring_drop/) | Stress 64-byte IRQ RX ring | `ring_drop_count` rises on fast paste; `ore_count` for UART overrun |
+| `uart_dma` | [`uart/dma`](uart/dma/) | **`bdk_uart_write_dma`** (stub) | API links; `BDK_ERR_NOT_IMPL` until UART DMA layer exists |
+| `uart_dma_poll` | [`uart/dma_poll`](uart/dma_poll/) | Raw **DMA** TX, no TC IRQ | Must **`bdk_dma_busy()`**; prints `busy_poll_loops` |
+| `uart_dma_irq` | [`uart/dma_irq`](uart/dma_irq/) | Raw **DMA** TX + TC IRQ | Main waits on **`dma_tx_done`**; never polls **`bdk_dma_busy()`** |
+| `i2c_scanner` | [`i2c/scanner`](i2c/scanner/) | I2C scan (placeholder) | Build only today; future: address list on bus |
+| `timer_pwm` | [`timer/pwm`](timer/pwm/) | PWM (placeholder) | Build only today; future: duty/frequency on scope |
+
+UART wiring (Discovery): USART2 **PA2** TX, **PA3** RX, USB–UART, common GND — see [`uart/README.md`](uart/README.md) and `docs/notes/uart.md`.
+
+DMA stream setup for USART2 TX labs: `docs/notes/dma.md`.

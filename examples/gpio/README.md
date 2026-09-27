@@ -1,8 +1,5 @@
 # GPIO examples
 
-| App | What |
-|-----|------|
-| [`blink`](blink/) | Toggle Discovery LEDs (PD12 / PD14) |
-
-Add another folder here (e.g. `input/`) and `add_subdirectory` it in this
-directory’s `CMakeLists.txt`.
+| App | Purpose | What it proves |
+|-----|---------|----------------|
+| [`blink`](blink/) | `bdk_gpio_init`, `bdk_gpio_toggle` on outputs | Discovery LEDs (PD12/PD14) toggle; GPIO clock + MODER/ODR path works |

@@ -1,23 +1,30 @@
 # UART echo
 
-USART2 polling: **read PA3, write PA2**. Type in Tera Term; the same character should come back.
+## Purpose
 
-## USB–UART (PC TX → MCU RX → MCU TX → PC)
+**Polling** full duplex: block on **RXNE**, echo with **write_byte**.
+
+## What it proves
+
+- RX path (PA3) and TX path (PA2) work together.
+- Characters typed in Tera Term return on the same terminal.
+
+## Wiring
 
 | Adapter | STM32 |
 |---------|--------|
-| TX      | **PA3** (USART2 RX) |
-| RX      | **PA2** (USART2 TX) |
-| GND     | GND |
+| TX | **PA3** (USART2 RX) |
+| RX | **PA2** (USART2 TX) |
+| GND | GND |
 
-Tera Term: **9600 8N1**. Do **not** jumper PA2 to PA3 while the adapter TX is on PA3 (two transmitters shorted).
+Tera Term **9600 8N1**. Do not tie PA2–PA3 while the adapter drives those pins.
 
-## MCU loopback (TX → RX on the chip)
+## Build
 
-Jumper **PA2 to PA3**, adapter **disconnected** from those pins. Then this program waits on RXNE until something drives PA3 — so loopback echo still needs a **sender**. For a jumper-only test, use `tx` to send and a second program, or send then read in one app. This `echo` example is for the **PC adapter** path.
+`cmake --build build --target uart_echo`
 
 ## Captures
 
 ```markdown
-![echo](captures/echo.png)
+![echo](captures/usart_echo.png)
 ```

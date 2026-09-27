@@ -65,8 +65,6 @@ Verify in debugger: e.g. `DMA1_Stream6->PAR == &USART2->DR`, CHSEL = 4, **EN** =
 - `busy`: non-zero while transfer in progress (**EN** and/or `NDTR` — document which).
 - `stop`: clear **EN** per RM.
 
-Example: `examples/uart/dma_poll/` (polling). `examples/uart/dma/` uses `write_dma` later.
-
 First hardware test (USART2 TX, polling only):
 
 1. App: GPIO + `bdk_uart_init`, `bdk_uart_dma_bind` (table above).
@@ -76,11 +74,11 @@ First hardware test (USART2 TX, polling only):
 
 No USART **TXEIE**, no DMA IRQ yet. Serial should show the buffer.
 
-### 3. `bdk_dma_tc_irq_enable`, `bdk_dma_irq_handler`
+### 3. `bdk_dma_irq_enable`, `bdk_dma_irq_handler`
 
-- **TCIE** on stream `CR`; NVIC `DMA1_Stream6_IRQn` (lab TX).
-- App: `DMA1_Stream6_IRQHandler` → `bdk_dma_irq_handler(BDK_DMA1_STREAM(6))`.
-- Handler: test **TC**, clear in `LIFCR`/`HIFCR`, drop **EN** / update state for `busy`.
+- `bdk_dma_irq_enable(&tx_stream, BDK_DMA_IT_TC)` (add `BDK_DMA_IT_TE` if you want error IRQs); NVIC e.g. `DMA1_Stream6_IRQn` (lab TX).
+- App: `DMA1_Stream6_IRQHandler` → `bdk_dma_irq_handler(&tx_stream)`.
+- Handler: **TEIF** first → clear **EN**, then clear all stream flags in `LIFCR`/`HIFCR` (TC/HT/TE/DME/FE). **TCIF** → clear **CTCIF** only; completion state for the app (no `stop` on normal TC).
 
 
 

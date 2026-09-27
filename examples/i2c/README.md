@@ -1,5 +1,5 @@
 # I2C examples
 
-| App | What |
-|-----|------|
-| [`scanner`](scanner/) | Placeholder — address scan once `bdk_i2c` exists |
+| App | Purpose | What it proves |
+|-----|---------|----------------|
+| [`scanner`](scanner/) | I2C bus scan (stub) | **Future:** `bdk_i2c` START/ADDR/ACK on SDA/SCL with a sensor |

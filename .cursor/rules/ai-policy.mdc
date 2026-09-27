@@ -17,6 +17,7 @@ This kit exists to learn STM32F4 from RM0090 and hardware measurements. Full tex
   `bdk_*_irq_handler(id)`. Use `poll_in` / `write_async`, not `try_read` / `nb_*`.
   Do not define vector names in `src/bdk_*.c`.
 - Review **after** the user writes code: name the bug and why; do not rewrite the driver.
+- Refactors: minimal diff only — see **Refactoring** in `.cursor/skills/bdk-library-design/SKILL.md` (no drive-by style/format).
 - Conceptual "why" questions (pull-ups, clock stretching). Point at RM0090 sections/tables when stuck.
 
 ## Do not

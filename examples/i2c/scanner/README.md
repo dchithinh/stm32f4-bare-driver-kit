@@ -1,11 +1,14 @@
 # I2C scanner
 
-Verify START / ACK / STOP on a logic analyzer with a real sensor.
+## Purpose
 
-## Captures
+**Placeholder** for an address scan once **`bdk_i2c`** is implemented.
 
-Analyzer screenshots go in `captures/`. Example:
+## What it proves
 
-```markdown
-![I2C START](captures/i2c_start.png)
-```
+- **Today:** empty `main` — build target only.
+- **Target:** print responding 7-bit addresses; logic analyzer shows START, address byte, ACK/NACK, STOP.
+
+## Build
+
+`cmake --build build --target i2c_scanner`

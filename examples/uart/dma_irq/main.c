@@ -5,6 +5,10 @@
 #include "bdk_uart.h"
 #include "dma_lab_common.h"
 
+static const bdk_dma_stream_t tx_stream = BDK_DMA1_STREAM(6);
+
+static volatile uint8_t dma_tx_done;
+
 static void uart2_gpio_init(void)
 {
     bdk_gpio_config_t tx = {
@@ -42,16 +46,21 @@ static void uart2_cfg_init(void)
     BDK_ASSERT_OK(bdk_uart_init(&uart));
 }
 
+void DMA1_Stream6_IRQHandler(void)
+{
+    bdk_dma_irq_handler(&tx_stream);
+    if (bdk_dma_busy(&tx_stream) == 0) {
+        dma_tx_done = 1;
+    }
+}
+
 int main(void)
 {
-    uint32_t busy_poll_loops = 0;
     static uint8_t dma_buf[LAB_DMA_TX_BYTES];
 
     uart2_gpio_init();
     uart2_cfg_init();
     lab_fill_dma_tx_buffer(dma_buf, LAB_DMA_TX_BYTES);
-
-    static const bdk_dma_stream_t tx_stream = BDK_DMA1_STREAM(6);
 
     static const bdk_dma_config_t dma_tx = {
         .stream       = tx_stream,
@@ -67,20 +76,18 @@ int main(void)
     BDK_ASSERT_OK(bdk_dma_config(&dma_tx));
 
     SET_BIT(USART2->CR3, USART_CR3_DMAT);
+    BDK_ASSERT_OK(bdk_dma_irq_enable(&tx_stream, BDK_DMA_IT_TC));
 
     uart_write_str(BDK_UART_2,
-                   "\r\n[poll] No DMA TC IRQ. Must call bdk_dma_busy() until done.\r\n");
+                   "\r\n[irq] TC IRQ enabled. Wait on dma_tx_done, not bdk_dma_busy().\r\n");
 
+    dma_tx_done = 0;
     BDK_ASSERT_OK(bdk_dma_start(&tx_stream, dma_buf, LAB_DMA_TX_BYTES));
 
-    while (bdk_dma_busy(&tx_stream) != 0) {
-        busy_poll_loops++;
+    while (dma_tx_done == 0) {
     }
 
-    uart_write_str(BDK_UART_2, "[poll] DMA complete (detected via bdk_dma_busy)\r\n");
-    uart_write_str(BDK_UART_2, "[poll] busy_poll_loops=");
-    uart_write_u32(BDK_UART_2, busy_poll_loops);
-    uart_write_str(BDK_UART_2, "\r\n");
+    uart_write_str(BDK_UART_2, "[irq] DMA complete (TC IRQ set dma_tx_done; main never polled busy)\r\n");
 
     for (;;) {
     }
