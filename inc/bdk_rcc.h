@@ -6,6 +6,7 @@
 #include "bdk_status.h"
 #include "bdk_gpio.h"
 #include "bdk_uart.h"
+#include "bdk_i2c.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,7 +50,7 @@ bdk_status_t bdk_rcc_usart_clk_enable(bdk_uart_id_t id);
 
 /**
  * @brief Enable I2C clock on APB1.
- * @param i2c_index 1, 2, or 3.
+ * @param i2c_index @ref BDK_I2C_1 .. @ref BDK_I2C_3 (0 .. 2).
  * @return BDK_OK, @ref BDK_ERR_RANGE, or @ref BDK_ERR_NOT_IMPL.
  */
 bdk_status_t bdk_rcc_i2c_clk_enable(uint8_t i2c_index);
@@ -79,7 +80,7 @@ uint32_t bdk_rcc_get_sysclk_hz(void);
 uint32_t bdk_rcc_get_hclk_hz(void);
 
 /**
- * @brief APB1 (PCLK1) frequency in hertz.
+ * @brief APB1 (PCLK1) frequency in hertz (I2C/USART2–5 on this bus; I2C CR2 FREQ = MHz of this clock).
  */
 uint32_t bdk_rcc_get_pclk1_hz(void);
 

@@ -2,4 +2,4 @@
 
 | App | Purpose | What it proves |
 |-----|---------|----------------|
-| [`scanner`](scanner/) | I2C bus scan (stub) | **Future:** `bdk_i2c` START/ADDR/ACK on SDA/SCL with a sensor |
+| [`scanner`](scanner/) | 7-bit address scan (`write` len 0) | USART lists ACKed addresses; LA on PB6/PB9 |
