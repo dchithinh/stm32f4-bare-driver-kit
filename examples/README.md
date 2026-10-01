@@ -30,6 +30,8 @@ Build from `build/`: `cmake --build . --target <app_target>` (target name in eac
 | `dma_m2m` | [`dma/m2m`](dma/m2m/) | **Mem→mem** DMA + TC IRQ | Hex dump before/after; **`mismatches=0`**; wait on **`dma_m2m_done`** |
 | `i2c_scanner` | [`i2c/scanner`](i2c/scanner/) | 7-bit I2C bus scan | Prints ACKed addrs on UART; needs **`bdk_i2c`** in `src/bdk_i2c.c` |
 | `spi_write` | [`spi/write`](spi/write/) | Polling SPI1 + GPIO CS | 4-byte MOSI burst; needs **`bdk_spi`** in `src/bdk_spi.c` |
+| `spi_irq_tx` | [`spi/irq_tx`](spi/irq_tx/) | SPI1 **`write_async`** | Same 4 bytes from **TXE IRQ**; CS until `tx_active` |
+| `spi_dma` | [`spi/dma`](spi/dma/) | SPI1 **`write_dma`** | 16-byte burst, continuous SCK; DMA2 S3 TX / S0 RX CH3 |
 | `timer_pwm` | [`timer/pwm`](timer/pwm/) | PWM (placeholder) | Build only today; future: duty/frequency on scope |
 
 UART wiring (Discovery): USART2 **PA2** TX, **PA3** RX, USB–UART, common GND — see [`uart/README.md`](uart/README.md) and `docs/notes/uart.md`.

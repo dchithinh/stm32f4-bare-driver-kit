@@ -23,7 +23,7 @@ Do not put ILI9341/ST7735 command tables in `src/bdk_spi.c`.
 | `cpol` / `cpha` | Mode 0 = LOW + 1EDGE (many panels); check the LCD datasheet |
 | `width` | 8-bit commands; some panels want 16-bit pixels (`bdk_spi_set_width`) |
 
-Clock: `bdk_rcc_spi_clk_enable(id)` from init. Use `bdk_rcc_get_pclk1_hz()` / `pclk2_hz()` to pick a prescaler that stays under the panel SCK max.
+Clock: `bdk_rcc_spi_clk_enable(id)` from init. After `bdk_rcc_sysclk_init()` (64 MHz, APB2 64 MHz), SPI1 `BDK_SPI_BAUD_DIV4` is **16 MHz** SCK. Use `bdk_rcc_get_pclk2_hz()` if you change the tree.
 
 ## Suggested implement order
 
@@ -50,4 +50,11 @@ TX-only still generates clocks on MISO; drain **RXNE** (or RX DMA) or you will *
 
 ## Lab vs portable
 
-F407 DMA request rows (which stream/channel for SPI1 TX/RX) live in the example, not in `bdk_dma`. Other F4 parts can differ.
+F407 DMA request rows live in the example, not in `bdk_dma`. Other F4 parts can differ.
+
+Lab `examples/spi/dma/` (SPI1):
+
+| Direction | Controller | Stream | CHSEL |
+|-----------|------------|--------|-------|
+| TX | DMA2 | 3 | 3 |
+| RX | DMA2 | 0 | 3 |

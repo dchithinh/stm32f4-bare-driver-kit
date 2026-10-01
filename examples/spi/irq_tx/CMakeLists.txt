@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.20)
+
+if (NOT TARGET bdk_stm32f4)
+    include(${CMAKE_CURRENT_LIST_DIR}/../../../bdk_sdk_import.cmake)
+endif()
+
+project(spi_irq_tx C ASM)
+
+add_executable(spi_irq_tx main.c)
+target_link_libraries(spi_irq_tx bdk_stm32f4)
+
+bdk_add_extra_outputs(spi_irq_tx)

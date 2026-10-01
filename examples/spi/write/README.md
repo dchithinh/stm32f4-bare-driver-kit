@@ -4,6 +4,6 @@
 
 **What it proves:** After `bdk_spi_init` / `bdk_spi_write` are implemented, SCK/MOSI show a 4-byte burst (`00 55 AA FF`) with CS low, then CS high. Scope: PA5 / PA7 / PA4.
 
-Pins (change in `main.c`): **PA5** SCK, **PA7** MOSI, **PA6** MISO, **PA4** CS. Mode 0, DIV16.
+Pins (change in `main.c`): **PA5** SCK, **PA7** MOSI, **PA6** MISO, **PA4** CS. Mode 0. `bdk_rcc_sysclk_init` → 64 MHz, **DIV4 → SCK 16 MHz**. PicoScope: interval ≪ 62.5 ns.
 
 IRQ/DMA come later (`write_async`, `write_dma`); see `docs/notes/spi.md`.

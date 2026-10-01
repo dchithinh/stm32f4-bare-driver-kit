@@ -1,19 +1,16 @@
 /**
  * @file main.c
- * @brief Polling SPI1 master write (LCD-style: CS in the app). Implement src/bdk_spi.c from RM0090.
- *
- * Lab default: SPI1 PA5=SCK, PA7=MOSI, PA6=MISO (optional), PA4=CS GPIO.
- * Change pins for your panel. D/C and RST are not used here.
+ * @brief SPI1 master TX via TXE/RXNE IRQ (`write_async`). Same pins as spi_write.
  */
 
 #include "bdk_gpio.h"
 #include "bdk_rcc.h"
 #include "bdk_spi.h"
 
-#define LAB_SPI      BDK_SPI_1
-#define LAB_SPI_AF   BDK_GPIO_AF_SPI1
-#define LAB_CS_PORT  BDK_GPIO_PORT_A
-#define LAB_CS_PIN   4U
+#define LAB_SPI     BDK_SPI_1
+#define LAB_SPI_AF  BDK_GPIO_AF_SPI1
+#define LAB_CS_PORT BDK_GPIO_PORT_A
+#define LAB_CS_PIN  4U
 
 static void lab_cs_init(void)
 {
@@ -52,6 +49,11 @@ static void lab_spi1_gpio_init(void)
     BDK_ASSERT_OK(bdk_gpio_init(&mosi));
 }
 
+void SPI1_IRQHandler(void)
+{
+    bdk_spi_irq_handler(LAB_SPI);
+}
+
 int main(void)
 {
     static const uint8_t burst[] = {0x00, 0x55, 0xAA, 0xFF};
@@ -68,11 +70,16 @@ int main(void)
         .width = BDK_SPI_WIDTH_8,
     };
     BDK_ASSERT_OK(bdk_spi_init(&cfg));
+    BDK_ASSERT_OK(bdk_spi_irq_enable(LAB_SPI));
 
     for (;;) {
-        bdk_gpio_clear(LAB_CS_PORT, LAB_CS_PIN);
-        (void)bdk_spi_write(LAB_SPI, burst, sizeof(burst));
-        bdk_gpio_set(LAB_CS_PORT, LAB_CS_PIN);
+        if (bdk_spi_tx_active(LAB_SPI) == 0) {
+            bdk_gpio_clear(LAB_CS_PORT, LAB_CS_PIN);
+            BDK_ASSERT_OK(bdk_spi_write_async(LAB_SPI, burst, sizeof(burst)));
+            while (bdk_spi_tx_active(LAB_SPI) != 0) {
+            }
+            bdk_gpio_set(LAB_CS_PORT, LAB_CS_PIN);
+        }
 
         for (volatile int i = 0; i < 800000; i++) {
         }

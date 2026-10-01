@@ -8,8 +8,12 @@
 #define HSE_VALUE 8000000U
 #endif
 
+extern uint32_t SystemCoreClock;
 extern const uint8_t AHBPrescTable[16];
 extern const uint8_t APBPrescTable[8];
+
+#define BDK_RCC_PLL_LOOPS 100000U
+#define BDK_RCC_SYSCLK_HZ 64000000U
 
 typedef struct {
     volatile uint32_t *enr;
@@ -47,7 +51,58 @@ static const uint32_t i2c_apb1en[] = {
 
 bdk_status_t bdk_rcc_sysclk_init(void)
 {
-    return BDK_ERR_NOT_IMPL;
+    uint32_t i;
+    uint32_t pllcfgr;
+
+    SET_BIT(RCC->CR, RCC_CR_HSION);
+    for (i = 0; i < BDK_RCC_PLL_LOOPS; i++) {
+        if ((RCC->CR & RCC_CR_HSIRDY) != 0U) {
+            break;
+        }
+    }
+    if ((RCC->CR & RCC_CR_HSIRDY) == 0U) {
+        return BDK_ERR_TIMEOUT;
+    }
+
+    /* 64 MHz: 2 wait states (RM FLASH latency table, 2.7–3.6 V). */
+    MODIFY_REG(FLASH->ACR, FLASH_ACR_LATENCY, FLASH_ACR_LATENCY_2WS);
+    SET_BIT(FLASH->ACR, FLASH_ACR_PRFTEN);
+
+    /* HSI 16 MHz / M=8 * N=64 / P=2 = 64 MHz (VCO 128 MHz). */
+    pllcfgr = RCC->PLLCFGR;
+    pllcfgr &= ~(RCC_PLLCFGR_PLLM | RCC_PLLCFGR_PLLN | RCC_PLLCFGR_PLLP |
+                 RCC_PLLCFGR_PLLSRC);
+    pllcfgr |= (8U << RCC_PLLCFGR_PLLM_Pos);
+    pllcfgr |= (64U << RCC_PLLCFGR_PLLN_Pos);
+    pllcfgr |= (0U << RCC_PLLCFGR_PLLP_Pos);
+    RCC->PLLCFGR = pllcfgr;
+
+    SET_BIT(RCC->CR, RCC_CR_PLLON);
+    for (i = 0; i < BDK_RCC_PLL_LOOPS; i++) {
+        if ((RCC->CR & RCC_CR_PLLRDY) != 0U) {
+            break;
+        }
+    }
+    if ((RCC->CR & RCC_CR_PLLRDY) == 0U) {
+        return BDK_ERR_TIMEOUT;
+    }
+
+    MODIFY_REG(RCC->CFGR, RCC_CFGR_HPRE, RCC_CFGR_HPRE_DIV1);
+    MODIFY_REG(RCC->CFGR, RCC_CFGR_PPRE2, RCC_CFGR_PPRE2_DIV1);
+    MODIFY_REG(RCC->CFGR, RCC_CFGR_PPRE1, RCC_CFGR_PPRE1_DIV2);
+
+    MODIFY_REG(RCC->CFGR, RCC_CFGR_SW, RCC_CFGR_SW_PLL);
+    for (i = 0; i < BDK_RCC_PLL_LOOPS; i++) {
+        if ((RCC->CFGR & RCC_CFGR_SWS) == RCC_CFGR_SWS_PLL) {
+            break;
+        }
+    }
+    if ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {
+        return BDK_ERR_TIMEOUT;
+    }
+
+    SystemCoreClock = BDK_RCC_SYSCLK_HZ;
+    return BDK_OK;
 }
 
 bdk_status_t bdk_rcc_mco2_sysclk(void)

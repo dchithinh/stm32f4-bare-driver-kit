@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /**
- * @brief Configure the F407 system clock tree (HSE/HSI/PLL, AHB/APB prescalers).
- * @note Chip-specific. Do not assume this is valid on other F4 parts.
- * @return BDK_OK on success, BDK_ERR_TIMEOUT if an oscillator/PLL does not lock.
+ * @brief SYSCLK = 64 MHz from HSI + PLL (AHB 64 MHz, APB2 64 MHz, APB1 32 MHz).
+ * @note Chip-specific. SPI1 @ @ref BDK_SPI_BAUD_DIV4 is then 16 MHz SCK.
+ * @return BDK_OK on success, BDK_ERR_TIMEOUT if HSI/PLL does not lock.
  */
 bdk_status_t bdk_rcc_sysclk_init(void);
 
