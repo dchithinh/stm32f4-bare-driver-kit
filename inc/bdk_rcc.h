@@ -7,6 +7,7 @@
 #include "bdk_gpio.h"
 #include "bdk_uart.h"
 #include "bdk_i2c.h"
+#include "bdk_spi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,10 +58,10 @@ bdk_status_t bdk_rcc_i2c_clk_enable(uint8_t i2c_index);
 
 /**
  * @brief Enable SPI clock on APB1 or APB2 as appropriate.
- * @param spi_index 1, 2, or 3.
+ * @param id @ref BDK_SPI_1 .. @ref BDK_SPI_3 (0 .. 2). SPI1 is APB2; SPI2/3 are APB1.
  * @return BDK_OK, @ref BDK_ERR_RANGE, or @ref BDK_ERR_NOT_IMPL.
  */
-bdk_status_t bdk_rcc_spi_clk_enable(uint8_t spi_index);
+bdk_status_t bdk_rcc_spi_clk_enable(bdk_spi_id_t id);
 
 /**
  * @brief Enable TIMx clock.

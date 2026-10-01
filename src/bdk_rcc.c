@@ -83,10 +83,21 @@ bdk_status_t bdk_rcc_i2c_clk_enable(uint8_t i2c_index)
     return BDK_OK;
 }
 
-bdk_status_t bdk_rcc_spi_clk_enable(uint8_t spi_index)
+bdk_status_t bdk_rcc_spi_clk_enable(bdk_spi_id_t id)
 {
-    (void)spi_index;
-    return BDK_ERR_NOT_IMPL;
+    switch (id) {
+    case BDK_SPI_1:
+        SET_BIT(RCC->APB2ENR, RCC_APB2ENR_SPI1EN);
+        return BDK_OK;
+    case BDK_SPI_2:
+        SET_BIT(RCC->APB1ENR, RCC_APB1ENR_SPI2EN);
+        return BDK_OK;
+    case BDK_SPI_3:
+        SET_BIT(RCC->APB1ENR, RCC_APB1ENR_SPI3EN);
+        return BDK_OK;
+    default:
+        return BDK_ERR_RANGE;
+    }
 }
 
 bdk_status_t bdk_rcc_tim_clk_enable(uint8_t tim_index)

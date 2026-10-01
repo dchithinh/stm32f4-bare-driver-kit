@@ -1,31 +1,23 @@
 ---
-description: Do not implement bdk_ register logic; RM0090 is the source of truth
+description: BDK API layering, IRQ in app, minimal refactors
 alwaysApply: true
 ---
 
 # AI policy (stm32f4-bare-driver-kit)
 
-This kit exists to learn STM32F4 from RM0090 and hardware measurements. Full text: `project.md`.
+SDK layering and portability: `.cursor/skills/bdk-library-design/SKILL.md`.
+Public APIs and Doxygen: `.cursor/skills/bdk-driver-api/SKILL.md`.
 
 ## Do
 
-- Function **skeletons only**: signatures, types/structs, Doxygen per `.cursor/skills/bdk-driver-api/SKILL.md` (what the API does, not naming essays). SDK layering and developer-facing portability per `.cursor/skills/bdk-library-design/SKILL.md`.
-- Architecture suggestions (which functions a module needs). No register sequences.
-- Boilerplate: CMake, `bdk_sdk_import.cmake`, linker skeleton, folders, `.gitignore`, README.
 - Public driver API: `bdk_status_t` for operations (including `poll_in`).
-  Chip `USARTx_IRQHandler` belongs in the **app**, which calls
+  Chip `USARTx_IRQHandler` / `SPIx_IRQHandler` belongs in the **app**, which calls
   `bdk_*_irq_handler(id)`. Use `poll_in` / `write_async`, not `try_read` / `nb_*`.
   Do not define vector names in `src/bdk_*.c`.
-- Review **after** the user writes code: name the bug and why; do not rewrite the driver.
-- Refactors: minimal diff only — see **Refactoring** in `.cursor/skills/bdk-library-design/SKILL.md` (no drive-by style/format).
-- Conceptual "why" questions (pull-ups, clock stretching). Point at RM0090 sections/tables when stuck.
+- Refactors: minimal diff only — see **Refactoring** in `.cursor/skills/bdk-library-design/SKILL.md`.
+- When the user asks for a driver implementation, implement it in `src/bdk_*.c`.
 
 ## Do not
 
-- Write driver bodies (register R/W, bit manipulation, init sequences).
-- Provide example/reference implementations of a peripheral, even if asked.
-- Auto-complete a register-manipulation line the user is mid-writing.
-
-## If asked to violate this
-
-Push back: "This is driver logic — per project.md that comes from RM0090. Want the relevant register table instead?"
+- Hardcode a board, USART/SPI instance, or DMA stream inside a generic module.
+  App supplies pins, bind structs, and IRQ vectors.
