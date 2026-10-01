@@ -6,8 +6,11 @@
  * (address + ACK probe, no data bytes). Implement in src/bdk_i2c.c from RM0090.
  */
 
+#include "stm32f4xx.h"
+
 #include "bdk_gpio.h"
 #include "bdk_i2c.h"
+#include "bdk_status.h"
 #include "bdk_uart.h"
 
 /* F407 Discovery: I2C1 on PB6 (SCL), PB9 (SDA). Change if your bus uses other pins. */
@@ -34,6 +37,44 @@ static void uart_put_hex8(bdk_uart_id_t id, uint8_t v)
 
     bdk_uart_write_byte(id, (uint8_t)hex[(v >> 4) & 0x0FU]);
     bdk_uart_write_byte(id, (uint8_t)hex[v & 0x0FU]);
+}
+
+static void uart_put_hex32(bdk_uart_id_t id, uint32_t v)
+{
+    uart_puts(id, "0x");
+    uart_put_hex8(id, (uint8_t)(v >> 24));
+    uart_put_hex8(id, (uint8_t)(v >> 16));
+    uart_put_hex8(id, (uint8_t)(v >> 8));
+    uart_put_hex8(id, (uint8_t)v);
+}
+
+static void uart_put_reg(bdk_uart_id_t id, const char *name, uint32_t value)
+{
+    uart_puts(id, "  ");
+    uart_puts(id, name);
+    uart_puts(id, " ");
+    uart_put_hex32(id, value);
+    uart_puts(id, "\r\n");
+}
+
+/** Snapshot I2C1 + GPIOB + RCC (why SCL may stay flat). */
+static void dump_i2c1_hw(bdk_uart_id_t id)
+{
+    uart_puts(id, "regs:\r\n");
+    uart_put_reg(id, "I2C1 CR1  ", I2C1->CR1);
+    uart_put_reg(id, "I2C1 CR2  ", I2C1->CR2);
+    uart_put_reg(id, "I2C1 SR1  ", I2C1->SR1);
+    uart_put_reg(id, "I2C1 SR2  ", I2C1->SR2);
+    uart_put_reg(id, "I2C1 CCR  ", I2C1->CCR);
+    uart_put_reg(id, "I2C1 TRISE", I2C1->TRISE);
+    uart_put_reg(id, "GPIOB MODER ", GPIOB->MODER);
+    uart_put_reg(id, "GPIOB OTYPER", GPIOB->OTYPER);
+    uart_put_reg(id, "GPIOB PUPDR ", GPIOB->PUPDR);
+    uart_put_reg(id, "GPIOB IDR   ", GPIOB->IDR);
+    uart_put_reg(id, "GPIOB AFR[0]", GPIOB->AFR[0]);
+    uart_put_reg(id, "GPIOB AFR[1]", GPIOB->AFR[1]);
+    uart_put_reg(id, "RCC AHB1ENR ", RCC->AHB1ENR);
+    uart_put_reg(id, "RCC APB1ENR ", RCC->APB1ENR);
 }
 
 static void uart2_console_init(void)
@@ -144,10 +185,21 @@ int main(void)
     lab_i2c_init();
 
     uart_puts(BDK_UART_2, "i2c_scanner: PB6=SCL PB9=SDA I2C1\r\n");
+    dump_i2c1_hw(BDK_UART_2);
 
+    {
+        bdk_status_t st = bdk_i2c_write(LAB_I2C, 0x40, NULL, 0);
+        uart_puts(BDK_UART_2, "probe 0x40 ");
+        uart_puts(BDK_UART_2, bdk_status_str(st));
+        uart_puts(BDK_UART_2, "\r\n");
+        dump_i2c1_hw(BDK_UART_2);
+    }
+
+    /*
     for (;;) {
         scan_bus_once(BDK_UART_2, LAB_I2C);
         for (volatile int i = 0; i < 8000000; i++) {
         }
     }
+    */
 }
