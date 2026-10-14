@@ -33,6 +33,7 @@ Build from `build/`: `cmake --build . --target <app_target>` (target name in eac
 | `spi_irq_tx` | [`spi/irq_tx`](spi/irq_tx/) | SPI1 **`write_async`** | Same 4 bytes from **TXE IRQ**; CS until `tx_active` |
 | `spi_dma` | [`spi/dma`](spi/dma/) | SPI1 **`write_dma`** | 16-byte burst, continuous SCK; DMA2 S3 TX / S0 RX CH3 |
 | `timer_pwm` | [`timer/pwm`](timer/pwm/) | PWM (placeholder) | Build only today; future: duty/frequency on scope |
+| `usb_example` | [`usb/usb_example`](usb/usb_example/) | OTG FS pins + app-owned USB stack | PA11/PA12 AF10 today; enumeration still to be written in the example |
 
 UART wiring (Discovery): USART2 **PA2** TX, **PA3** RX, USB–UART, common GND — see [`uart/README.md`](uart/README.md) and `docs/notes/uart.md`.
 

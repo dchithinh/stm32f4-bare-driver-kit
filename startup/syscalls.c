@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <stddef.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 extern char end; /* linker script */
 
@@ -86,4 +87,14 @@ int _kill(int pid, int sig)
 int _getpid(void)
 {
     return 1;
+}
+
+int _gettimeofday(struct timeval *tv, void *tzvp)
+{
+    (void)tzvp;
+    if (tv != NULL) {
+        tv->tv_sec = 0;
+        tv->tv_usec = 0;
+    }
+    return 0;
 }
