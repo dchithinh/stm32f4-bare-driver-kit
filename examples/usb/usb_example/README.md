@@ -15,7 +15,7 @@ Starting point for a **USB device** written in this app, using the kit only for 
 
 F407 Discovery USB OTG FS micro-AB. Device mode uses PA11/PA12. Leave PA9, PA10, PC0, and PD5 alone until you add host mode.
 
-USB FS needs a **48 MHz** clock. `bdk_rcc_sysclk_init()` sets SYSCLK to 64 MHz from HSI+PLL and does not program PLLQ for 48 MHz — do that here before turning the core on.
+USB FS needs a **48 MHz** clock from PLLQ. Use `bdk_rcc_clock_init()` with the board preset in `clock_config.h` (168 MHz SYSCLK + 48 MHz USB on Discovery HSE) before turning the OTG core on.
 
 ## Debug console
 

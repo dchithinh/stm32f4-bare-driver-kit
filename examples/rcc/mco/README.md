@@ -1,28 +1,25 @@
-# RCC MCO2 — SYSCLK on PC9
+# RCC MCO1 — PLL 16 MHz on PA8
 
 ## Purpose
 
-Show that **clock output** comes from **RCC**, not from toggling GPIO.
+**MCO1** on **PA8** outputs **PLLCLK ÷ 5** (16 MHz). **SYSCLK** stays on **HSI** 16 MHz.
 
-You implement `bdk_rcc_mco2_sysclk()` (RM0090 `RCC_CFGR`: MCO2 = SYSCLK, prescaler ÷1). `main.c` only sets up PC9 alternate function for MCO2.
+- `bdk_rcc_clock_init` + `RCC_MCO_SYSCLK_HSI_16MHZ`
+- `bdk_rcc_pll_enable` + `RCC_MCO_PLL_FOR_MCO1` (80 MHz PLLCLK)
+- `bdk_rcc_mco1(BDK_RCC_MCO1_PLL, 5)` — MCO1 prescaler uses ST F4 bit patterns (see HAL `RCC_MCODIV_5`)
 
 ## What it proves
 
-- With default **HSI**, scope on **PC9** shows ~**16 MHz**, ~3.3 V square (period ~62.5 ns).
-- Confirms SYSCLK frequency before you change the PLL in `bdk_rcc`.
+- ~**16 MHz** on **PA8** (~62.5 ns period), not 80 MHz undivided PLLCLK.
+- RCC mux + PLL, not GPIO toggling.
 
-MCO1 is **PA8** and cannot select SYSCLK on F407.
+If you still see **~80 MHz**, reflash `rcc_mco` after updating `bdk_rcc_mco1` (÷5 must program `RCC_CFGR_MCO1PRE` as `0x07000000`, not `0x04000000`).
 
 ## Probe
 
-- **PC9** vs GND; timebase **50–100 ns/div** (not seconds — this is not blink).
+- **PA8** vs GND; **50–100 ns/div**.
+- **USART2** **PA2** TX @ **115200** (USB–UART RX): after flash, paste the `rcc_mco:` log lines for RCC debug.
 
 ## Build
 
 `cmake --build build --target rcc_mco`
-
-## Captures
-
-```markdown
-![MCO2 16 MHz](captures/mco2_16mhz.png)
-```

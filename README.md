@@ -24,7 +24,7 @@ Status is honest: some modules are used on the bench; others are still stubs.
 | Module | State | Notes |
 |--------|--------|--------|
 | GPIO | In use | Init, set/clear/toggle/read; AF / open-drain |
-| RCC | Partial | Peripheral clocks, `SYSCLK` via HSI+PLL (64 MHz) when an example calls `bdk_rcc_sysclk_init` |
+| RCC | Partial | `bdk_rcc_clock_init` — app supplies `bdk_rcc_clock_config_t`; flash latency from HCLK |
 | UART | In use | Polling + IRQ RX ring / `write_async`; USART DMA helpers still stub |
 | DMA | In use | Stream config/start/IRQ; mem↔mem and USART TX labs |
 | I2C | In use | Polling master (`write` / `read`; `write_read` not done) |

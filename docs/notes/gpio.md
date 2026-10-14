@@ -7,7 +7,7 @@ not a register recipe.
 API already exists: `inc/bdk_gpio.h`, `inc/bdk_rcc.h`.
 
 Skip for this pass: alternate function (`af`), analog, EXTI, full PLL clock
-tree (`bdk_rcc_sysclk_init`). Reset clock is HSI 16 MHz — enough to toggle a
+tree (`bdk_rcc_clock_init`). Reset clock is HSI 16 MHz — enough to toggle a
 pin. Capture what you learn in the “Notes after implementing” section at the
 bottom.
 
@@ -40,7 +40,7 @@ the whole port when the API is one pin.
 
 ## 2. Clock enable — `bdk_rcc_gpio_clk_enable` only
 
-File: `src/bdk_rcc.c`. Leave `bdk_rcc_sysclk_init` alone.
+File: `src/bdk_rcc.c`. Use `bdk_rcc_clock_init` when you need a defined SYSCLK.
 
 - Enable the **AHB1** clock for that port (`RCC_AHB1ENR` in RM0090).
 - Call this **before** `bdk_gpio_init` / `bdk_gpio_set`.
@@ -113,7 +113,7 @@ Two useful loops (do both at some point):
 - **Tight toggle** — no delay. Probe the pin. This is the real check.
 - **Slow blink** — crude software delay is fine; SysTick comes later.
 
-Do not call `bdk_rcc_sysclk_init` yet.
+Do not call `bdk_rcc_clock_init` yet unless you need a faster SYSCLK.
 
 ---
 
@@ -159,4 +159,4 @@ Fill this in yourself (the point of the file):
 
 - AF: `AFRL` pins 0–7, `AFRH` pins 8–15; AF number is in the **datasheet**
   alternate-function table, not the GPIO chapter.
-- `bdk_rcc_sysclk_init` once you care about a known HCLK, not just “it toggles.”
+- `bdk_rcc_clock_init` once you care about a known HCLK, not just “it toggles.”

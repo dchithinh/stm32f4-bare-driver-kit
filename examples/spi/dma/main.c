@@ -13,6 +13,8 @@
 #include "bdk_rcc.h"
 #include "bdk_spi.h"
 
+#include "clock_config.h"
+
 #define LAB_SPI     BDK_SPI_1
 #define LAB_SPI_AF  BDK_GPIO_AF_SPI1
 #define LAB_CS_PORT BDK_GPIO_PORT_A
@@ -101,7 +103,9 @@ int main(void)
         0x00, 0x55, 0xAA, 0xFF,
         0x00, 0x55, 0xAA, 0xFF,
     };
+    bdk_rcc_clock_config_t clk = SPI_EXAMPLE_CLOCK_HSI_64MHZ;
 
+    BDK_ASSERT_OK(bdk_rcc_clock_init(&clk));
     lab_cs_init();
     lab_spi1_gpio_init();
 
@@ -112,7 +116,6 @@ int main(void)
         .cpha  = BDK_SPI_CPHA_1EDGE,
         .width = BDK_SPI_WIDTH_8,
     };
-    BDK_ASSERT_OK(bdk_rcc_sysclk_init());
     BDK_ASSERT_OK(bdk_spi_init(&cfg));
     lab_spi1_dma_init();
 

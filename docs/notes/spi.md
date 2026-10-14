@@ -23,7 +23,7 @@ Do not put ILI9341/ST7735 command tables in `src/bdk_spi.c`.
 | `cpol` / `cpha` | Mode 0 = LOW + 1EDGE (many panels); check the LCD datasheet |
 | `width` | 8-bit commands; some panels want 16-bit pixels (`bdk_spi_set_width`) |
 
-Clock: `bdk_rcc_spi_clk_enable(id)` from init. After `bdk_rcc_sysclk_init()` (64 MHz, APB2 64 MHz), SPI1 `BDK_SPI_BAUD_DIV4` is **16 MHz** SCK. Use `bdk_rcc_get_pclk2_hz()` if you change the tree.
+Clock: `bdk_rcc_spi_clk_enable(id)` from init. SPI examples call `bdk_rcc_clock_init()` with `SPI_EXAMPLE_CLOCK_HSI_64MHZ` (64 MHz SYSCLK, APB2 64 MHz); SPI1 `BDK_SPI_BAUD_DIV4` is **16 MHz** SCK. Use `bdk_rcc_get_pclk2_hz()` if you change the tree.
 
 ## Suggested implement order
 

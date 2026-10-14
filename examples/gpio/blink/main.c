@@ -4,8 +4,7 @@
 int main(void)
 {
 
-    //Leave sysclk now as it is 16MHz by default on reset
-    // bdk_rcc_sysclk_init();
+    /* Reset default: HSI 16 MHz. For a known tree use bdk_rcc_clock_init() in the app. */
 
     bdk_gpio_config_t red_led_config = {
         .port = BDK_GPIO_PORT_D,

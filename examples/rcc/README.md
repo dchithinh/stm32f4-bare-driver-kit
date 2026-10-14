@@ -2,4 +2,4 @@
 
 | App | Purpose | What it proves |
 |-----|---------|----------------|
-| [`mco`](mco/) | Route **SYSCLK** to **MCO2** on PC9 | ~16 MHz square on PC9 at reset (HSI); RCC MCO mux, not GPIO bit-banging |
+| [`mco`](mco/) | **MCO1** PLL ÷5 on PA8 | SYSCLK HSI; ~16 MHz from 80 MHz PLLCLK on PA8 |

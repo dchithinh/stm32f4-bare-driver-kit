@@ -7,6 +7,7 @@ endif()
 project(spi_irq_tx C ASM)
 
 add_executable(spi_irq_tx main.c)
+target_include_directories(spi_irq_tx PRIVATE "${CMAKE_CURRENT_LIST_DIR}/..")
 target_link_libraries(spi_irq_tx bdk_stm32f4)
 
 bdk_add_extra_outputs(spi_irq_tx)

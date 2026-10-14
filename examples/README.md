@@ -18,7 +18,7 @@ Build from `build/`: `cmake --build . --target <app_target>` (target name in eac
 | Target | App | Purpose | What it proves |
 |--------|-----|---------|----------------|
 | `gpio_blink` | [`gpio/blink`](gpio/blink/) | GPIO output + toggle | PD12/PD14 LEDs blink (~1 s); GPIO clock and pin config work |
-| `rcc_mco` | [`rcc/mco`](rcc/mco/) | Route **SYSCLK** to **MCO2** (PC9) | ~16 MHz on PC9 (HSI); RCC mux, not GPIO toggling |
+| `rcc_mco` | [`rcc/mco`](rcc/mco/) | **MCO1** PLL ÷5 on PA8 | ~16 MHz on PA8; SYSCLK HSI; PLL feeds MCO1 |
 | `uart_tx` | [`uart/tx`](uart/tx/) | Polling **TX** (`bdk_uart_write`) | `HELLO!` on USART2 @ 9600 |
 | `uart_echo` | [`uart/echo`](uart/echo/) | Polling RX + TX echo | Typed characters echo on PA2/PA3 |
 | `uart_irq_echo` | [`uart/irq_echo`](uart/irq_echo/) | **RXNE** IRQ + `poll_in` | RX without polling **RXNE** in main; same echo as `echo` at human speed |

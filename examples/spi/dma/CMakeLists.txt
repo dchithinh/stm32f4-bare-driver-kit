@@ -7,6 +7,7 @@ endif()
 project(spi_dma C ASM)
 
 add_executable(spi_dma main.c)
+target_include_directories(spi_dma PRIVATE "${CMAKE_CURRENT_LIST_DIR}/..")
 target_link_libraries(spi_dma bdk_stm32f4)
 
 bdk_add_extra_outputs(spi_dma)

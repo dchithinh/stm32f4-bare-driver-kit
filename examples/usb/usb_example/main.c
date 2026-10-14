@@ -13,8 +13,8 @@
  * PA9 (VBUS), PA10 (ID), PC0 (power switch), and PD5 (overcurrent) stay
  * unused until host mode needs them.
  *
- * bdk_rcc_sysclk_init() does not produce the 48 MHz USB clock (PLLQ).
- * Set that clock in usb_fs_init() before enabling the OTG core.
+ * For USB, call bdk_rcc_clock_init() with a board config (see clock_config.h)
+ * before usb_fs_init().
  */
 
 static void usb_pins_init(void)

@@ -14,11 +14,70 @@ extern "C" {
 #endif
 
 /**
- * @brief SYSCLK = 64 MHz from HSI + PLL (AHB 64 MHz, APB2 64 MHz, APB1 32 MHz).
- * @note Chip-specific. SPI1 @ @ref BDK_SPI_BAUD_DIV4 is then 16 MHz SCK.
- * @return BDK_OK on success, BDK_ERR_TIMEOUT if HSI/PLL does not lock.
+ * @brief PLL clock source (RCC PLLCFGR PLLSRC).
  */
-bdk_status_t bdk_rcc_sysclk_init(void);
+typedef enum {
+    BDK_RCC_PLLSRC_HSI = 0,
+    BDK_RCC_PLLSRC_HSE,
+} bdk_rcc_pllsrc_t;
+
+/**
+ * @brief SYSCLK source for @ref bdk_rcc_clock_init. Default (0) = PLL.
+ */
+typedef enum {
+    BDK_RCC_SYSCLK_PLL = 0,
+    BDK_RCC_SYSCLK_HSI,
+    BDK_RCC_SYSCLK_HSE,
+} bdk_rcc_sysclk_src_t;
+
+/**
+ * @brief Clock tree for @ref bdk_rcc_clock_init.
+ *
+ * Set @p sysclk_src to HSI, HSE, or PLL. PLL fields apply when @p sysclk_src is
+ * PLL (or for @ref bdk_rcc_pll_enable only). SYSCLK from PLL:
+ * (pll_in / pllm) * plln / pllp_div; pll_in = HSI/2 or HSE. pllp: 0 → ÷2 … 3 → ÷8.
+ * pllq: 0 → leave PLLQ; else VCO/pllq (USB 48 MHz). Bus divisors: 1, 2, 4, 8, 16
+ * (AHB also 64, 128, 256).
+ */
+typedef struct {
+    bdk_rcc_sysclk_src_t sysclk_src;
+    bdk_rcc_pllsrc_t     pll_src;
+    uint32_t         hse_hz;   /**< HSE frequency when pll_src is HSE; 0 = CMSIS HSE_VALUE */
+    uint8_t          pllm;       /**< 2..63 */
+    uint16_t         plln;       /**< VCO multiplier (check RM VCO 192..432 MHz) */
+    uint8_t          pllp;       /**< 0..3 → SYSCLK divide factor above */
+    uint8_t          pllq;       /**< 0 or 2..15 */
+    uint16_t         ahb_div;
+    uint8_t          apb1_div;
+    uint8_t          apb2_div;
+} bdk_rcc_clock_config_t;
+
+/**
+ * @brief Apply @p config: oscillator, flash latency from HCLK, bus prescalers, SYSCLK mux.
+ * @param config Must not be NULL; fields must satisfy RM0090 F407 limits.
+ * @return BDK_OK, @ref BDK_ERR_NULL, @ref BDK_ERR_RANGE, or @ref BDK_ERR_TIMEOUT.
+ */
+bdk_status_t bdk_rcc_clock_init(const bdk_rcc_clock_config_t *config);
+
+/**
+ * @brief Start the main PLL from @p config without switching SYSCLK (@p sysclk_src ignored).
+ */
+bdk_status_t bdk_rcc_pll_enable(const bdk_rcc_clock_config_t *config);
+
+/**
+ * @brief MCO1 source (PA8). Configure GPIO AF0 before calling.
+ */
+typedef enum {
+    BDK_RCC_MCO1_HSI = 0,
+    BDK_RCC_MCO1_LSE,
+    BDK_RCC_MCO1_HSE,
+    BDK_RCC_MCO1_PLL,
+} bdk_rcc_mco1_src_t;
+
+/**
+ * @brief Route @p src to MCO1 with output divided by @p pre_div (1..5).
+ */
+bdk_status_t bdk_rcc_mco1(bdk_rcc_mco1_src_t src, uint8_t pre_div);
 
 /**
  * @brief Enable the AHB1 clock for a GPIO port.
@@ -28,16 +87,7 @@ bdk_status_t bdk_rcc_sysclk_init(void);
 bdk_status_t bdk_rcc_gpio_clk_enable(bdk_gpio_port_t port);
 
 /**
- * @brief Output SYSCLK on MCO2 (pin PC9).
- *
- * Programs RCC_CFGR only (MCO2 source = SYSCLK, MCO2PRE = not divided).
- * Does not configure GPIO: set PC9 to AF0 (BDK_GPIO_AF_MCO) first.
- * At reset SYSCLK is HSI 16 MHz, so the pin should be 16 MHz until
- * bdk_rcc_sysclk_init() changes the tree.
- *
- * @return BDK_OK, or BDK_ERR until implemented.
- *
- * @see RM0090 RCC register map, RCC_CFGR bits MCO2 and MCO2PRE.
+ * @brief Output SYSCLK on MCO2 (PC9). GPIO AF0 first; MCO2PRE = ÷1.
  */
 bdk_status_t bdk_rcc_mco2_sysclk(void);
 
@@ -71,7 +121,7 @@ bdk_status_t bdk_rcc_spi_clk_enable(bdk_spi_id_t id);
 bdk_status_t bdk_rcc_tim_clk_enable(uint8_t tim_index);
 
 /**
- * @brief SYSCLK frequency in hertz after bdk_rcc_sysclk_init().
+ * @brief SYSCLK frequency in hertz from RCC (PLL, HSE, or HSI).
  */
 uint32_t bdk_rcc_get_sysclk_hz(void);
 
