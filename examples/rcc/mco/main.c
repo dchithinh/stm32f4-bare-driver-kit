@@ -59,8 +59,9 @@ static void rcc_dump_mco_debug(const bdk_rcc_clock_config_t *pll_cfg, uint8_t mc
     log_info("cfg pllm=%u plln=%u pllp=%u (req MCO1 pre_div=%u)",
              (unsigned)pll_cfg->pllm, (unsigned)pll_cfg->plln, (unsigned)pll_cfg->pllp,
              (unsigned)mco_pre_req);
-    log_info("RCC CR PLLON=%u HSION=%u",
-             (unsigned)((cr & RCC_CR_PLLON) != 0U), (unsigned)((cr & RCC_CR_HSION) != 0U));
+    log_info("RCC CR PLLON=%u HSION=%u HSEON=%u HSERDY=%u",
+             (unsigned)((cr & RCC_CR_PLLON) != 0U), (unsigned)((cr & RCC_CR_HSION) != 0U),
+             (unsigned)((cr & RCC_CR_HSEON) != 0U), (unsigned)((cr & RCC_CR_HSERDY) != 0U));
     log_info("PLLCFGR 0x%08lx PLLSRC=%s pllm=%lu plln=%lu PLLP bits=%lu div=%lu",
              (unsigned long)pllcfgr, pll_hse ? "HSE" : "HSI/2",
              (unsigned long)pllm, (unsigned long)plln, (unsigned long)pllp_bits,

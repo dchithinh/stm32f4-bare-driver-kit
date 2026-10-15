@@ -45,7 +45,7 @@ static bdk_uart_tx_t *uart_tx_get(bdk_uart_id_t id);
 static void uart_tx_reset(bdk_uart_id_t id);
 static void uart_tx_isr(bdk_uart_id_t id, USART_TypeDef *regs);
 static USART_TypeDef *usart_regs(bdk_uart_id_t id);
-static uint32_t get_sysclk(void);
+static uint16_t uart_encode_brr(uint32_t ker_hz, uint32_t baud);
 
 static IRQn_Type uart_irqn(bdk_uart_id_t id)
 {
@@ -194,11 +194,27 @@ static USART_TypeDef *usart_regs(bdk_uart_id_t id)
     return uart_table[id];
 }
 
-static uint32_t get_sysclk(void)
+static uint16_t uart_encode_brr(uint32_t ker_hz, uint32_t baud)
 {
-    /*TODO: Update this func when support sysclk configuration*/
-    extern uint32_t SystemCoreClock;
-    return SystemCoreClock;
+    uint32_t divider;
+    uint32_t mantissa;
+    uint32_t fraction;
+    uint32_t brr;
+
+    if (baud == 0U) {
+        return 0U;
+    }
+
+    /*
+     * RM0090 / ST HAL: USARTDIV in BRR, OVER8=0.
+     * divider = round(25 * f_CK / (4 * baud)); BRR = mantissa:4 | fraction:4.
+     */
+    divider = (25U * ker_hz) / (4U * baud);
+    mantissa  = divider / 100U;
+    fraction  = divider - (100U * mantissa);
+    brr       = (mantissa << USART_BRR_DIV_Mantissa_Pos);
+    brr |= (((fraction * 16U) + 50U) / 100U) & USART_BRR_DIV_Fraction_Msk;
+    return (uint16_t)brr;
 }
 
 bdk_status_t bdk_uart_init(const bdk_uart_config_t *config)
@@ -223,14 +239,23 @@ bdk_status_t bdk_uart_init(const bdk_uart_config_t *config)
         return BDK_ERR_RANGE;
     }
 
-    /* OVER8 = 0: USARTDIV = f_CK / (16 * baud). BRR stores that in 1/16
-     * units (mantissa << 4 | fraction) = round(f_CK / baud).
-     * + baud/2 is round-to-nearest before integer divide. */
-    uint32_t div = (get_sysclk() + (config->baud / 2)) / config->baud;
-    if (div == 0 || div > 0xFFFF) {
+    uint32_t usart_clk = bdk_rcc_usart_ker_clk_hz(config->id);
+    uint16_t brr;
+
+    if (usart_clk == 0U) {
         return BDK_ERR_RANGE;
     }
-    regs->BRR = (uint16_t) div;
+    brr = uart_encode_brr(usart_clk, config->baud);
+    if (brr == 0U) {
+        return BDK_ERR_RANGE;
+    }
+
+    /* BRR and frame format: USART disabled (UE=0), per RM0090. */
+    CLEAR_BIT(regs->CR1, USART_CR1_UE);
+    CLEAR_BIT(regs->CR1, USART_CR1_TE);
+    CLEAR_BIT(regs->CR1, USART_CR1_RE);
+
+    regs->BRR = brr;
 
     CLEAR_BIT(regs->CR1, USART_CR1_M);
     SET_BIT(regs->CR1, (uint32_t) (0x1UL & config->word) << USART_CR1_M_Pos);

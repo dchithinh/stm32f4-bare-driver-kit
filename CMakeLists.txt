@@ -28,6 +28,7 @@ add_library(bdk_stm32f4 STATIC
     src/bdk_i2c.c
     src/bdk_spi.c
     src/bdk_timer.c
+    src/bdk_usb.c
     startup/startup_stm32f407xx.s
     startup/system_stm32f4xx.c
     startup/syscalls.c

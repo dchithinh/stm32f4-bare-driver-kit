@@ -1,26 +1,91 @@
-# USB example
+# `usb_example` — HAL PCD + USBD CDC enumeration
 
-## Purpose
+**Discovery CN5** — BDK **clock / PC0 / USART2 log**, plus **ST HAL PCD** and **USB Device Library (CDC)**. Cube-style gadget (`0483:5740`).
 
-Starting point for a **USB device** written in this app, using the kit only for what it already owns.
+## Build and run
 
-`bdk_gpio_init` muxes Discovery **PA11** (DM) and **PA12** (DP) to **OTG_FS** (`BDK_GPIO_AF_OTG_FS`). Clock, core, endpoints, and descriptors go in `usb_fs_init()` / `OTG_FS_IRQHandler` in `main.c`. There is no `bdk_usb` driver.
+```bash
+cmake --build build --target usb_example
+# flash build/examples/usb/usb_example/usb_example.bin  (~40 KiB)
+```
 
-## What it proves
+- **USART2** 115200: `usb_example: USBD started — plug CN5; …`
+- **CN5** on host: `dmesg`, `lsusb` → **0483:5740**, `ttyACM0` (or similar)
 
-- **Today:** the image links and the FS pins are in AF10. Nothing enumerates.
-- **Target:** the board shows up on the USB OTG FS connector after the stack in this example is filled in.
+Vendored ST code: `vendor/` (trimmed HAL + USBD — see `vendor/README.md` if present).
 
-## Hardware
+## `main()` init order (`main.c`)
 
-F407 Discovery USB OTG FS micro-AB. Device mode uses PA11/PA12. Leave PA9, PA10, PC0, and PD5 alone until you add host mode.
+| # | Call | Effect |
+|---|------|--------|
+| 1 | `HAL_Init()` | Flash/cache, NVIC grouping, default HAL state |
+| 2 | `usb_clock_init()` | BDK: 168 MHz + **48 MHz USB** (PLLQ) |
+| 3 | `HAL_InitTick()` | **SysTick** 1 ms — required by HAL/USB stack timing |
+| 4 | `log_redirect_uart2(115200)` | Debug |
+| 5 | `usb_discovery_cn5_power_on()` | **PC0** high |
+| 6 | `MX_USB_DEVICE_Init()` | See below |
+| 7 | `for (;;)` | Idle; USB runs on IRQ + USBD |
 
-USB FS needs a **48 MHz** clock from PLLQ. Use `bdk_rcc_clock_init()` with the board preset in `clock_config.h` (168 MHz SYSCLK + 48 MHz USB on Discovery HSE) before turning the OTG core on.
+There is **no** `bdk_usb` in this target.
 
-## Debug console
+### `MX_USB_DEVICE_Init()` (`vendor/USB_DEVICE/App/Src/usb_device.c`)
 
-`log_redirect_uart2(115200)` from [`examples/logger`](../logger/) prints `log_*` lines on **USART2** (**PA2** TX → USB–UART RX, GND common). Call it before other init.
+| Step | API | Effect |
+|------|-----|--------|
+| 1 | `USBD_Init(..., &VCP_Desc, 0)` | → `USBD_LL_Init` → `HAL_PCD_Init` |
+| 2 | `USBD_RegisterClass(..., &USBD_CDC)` | CDC class |
+| 3 | `USBD_CDC_RegisterInterface(...)` | `usbd_cdc_if.c` |
+| 4 | `USBD_Start` | `HAL_PCD_Start` — soft connect, traffic enabled |
 
-## Build
+### Inside `USBD_LL_Init` / `HAL_PCD_Init` (first time)
 
-`cmake --build build --target usb_example`
+| Step | Where | Effect |
+|------|--------|--------|
+| 1 | `HAL_PCD_MspInit` | **GPIOA** PA9 VBUS, PA10 ID, PA11/12 DM/DP AF; OTG FS clock; **NVIC OTG_FS** |
+| 2 | `USB_CoreInit` | Embedded PHY, core reset, transceiver |
+| 3 | `USB_SetCurrentMode(DEVICE)` | `FDMOD` |
+| 4 | `USB_DevInit` | VBUS policy, FIFO flush, `GINTMSK`, soft disconnect |
+| 5 | `HAL_PCDEx_SetRxFiFo` / `SetTxFiFo` | Packet RAM layout (see `usbd_conf.c`: RX 0x80 words, EP0 TX 0x40, EP1 TX 0x80) |
+| 6 | `HAL_PCD_Start` | Connect on bus |
+
+**Vectors** (`vendor/stm32f4xx_it.c`):
+
+- `SysTick_Handler` → `HAL_IncTick()`
+- `OTG_FS_IRQHandler` → `HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS)`
+
+## IRQ → stack (enumeration)
+
+```text
+OTG_FS_IRQHandler
+  └─ HAL_PCD_IRQHandler
+       ├─ GINTSTS USBRST   → flush, EP0 OUT for SETUP, USBD reset callback
+       ├─ GINTSTS ENUMDNE  → speed, turnaround, USBD reset stage
+       ├─ GINTSTS RXFLVL   → read GRXSTSP / FIFO
+       ├─ GINTSTS OEPINT   → SETUP / OUT complete → USBD_LL_SetupStage / DataOut
+       └─ GINTSTS IEPINT   → IN complete → USBD_LL_DataInStage
+```
+
+USBD Core handles **GET_DESCRIPTOR**, **SET_ADDRESS**, **SET_CONFIGURATION**, then CDC interfaces.
+
+## Host timeline (successful enum)
+
+```mermaid
+sequenceDiagram
+    participant H as Host
+    participant PCD as HAL_PCD
+    participant USBD as USBD Core + CDC
+    participant U as usbd_cdc_if
+
+    H->>PCD: bus reset
+    PCD->>USBD: ResetCallback / LL_Reset
+    H->>PCD: SETUP GET_DESCRIPTOR (device)
+    PCD->>USBD: SetupStage
+    USBD->>PCD: IN descriptor
+    H->>PCD: SET_ADDRESS, GET_DESCRIPTOR (config), SET_CONFIGURATION
+    USBD->>U: CDC init
+    H->>U: bulk/interrupt (ttyACM)
+```
+
+## Note on `bdk_usb` + minimal EP0
+
+An experiment that answered SETUP **inside the OTG ISR** without a full stack caused **MCU resets** (boot banner twice). Enumeration on this board stays on **HAL/USBD** here until a complete EP0 + descriptor layer exists in the kit (or a port of USBD LL to `bdk_usb`).

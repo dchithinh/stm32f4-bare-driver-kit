@@ -1,64 +1,66 @@
+/**
+ * USB enumeration on CN5 — same HAL PCD + ST USBD path as Cube usb_test.
+ * BDK: clock, PC0 power, USART2 log. (bdk_usb EP0 is not used here.)
+ */
+#include "main.h"
+
 #include "bdk_gpio.h"
+#include "bdk_rcc.h"
 #include "bdk_uart.h"
 
+#include "clock_config.h"
 #include "log.h"
+#include "usb_device.h"
 
-/*
- * STM32F407 Discovery, USB OTG FS micro-AB (device).
- * Pins come from the board; the USB device stack stays in this example.
- *
- *   PA11  OTG_FS_DM   AF10
- *   PA12  OTG_FS_DP   AF10
- *
- * PA9 (VBUS), PA10 (ID), PC0 (power switch), and PD5 (overcurrent) stay
- * unused until host mode needs them.
- *
- * For USB, call bdk_rcc_clock_init() with a board config (see clock_config.h)
- * before usb_fs_init().
- */
+#include "stm32f4xx_hal.h"
 
-static void usb_pins_init(void)
+extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
+
+static void usb_clock_init(void)
 {
-    bdk_gpio_config_t dm = {
-        .port  = BDK_GPIO_PORT_A,
-        .pin   = 11,
-        .mode  = BDK_GPIO_MODE_AF,
-        .af    = BDK_GPIO_AF_OTG_FS,
-        .otype = BDK_GPIO_OTYPE_PP,
-        .pull  = BDK_GPIO_PULL_NONE,
-        .speed = BDK_GPIO_SPEED_VERY_HIGH,
-    };
-    bdk_gpio_config_t dp = {
-        .port  = BDK_GPIO_PORT_A,
-        .pin   = 12,
-        .mode  = BDK_GPIO_MODE_AF,
-        .af    = BDK_GPIO_AF_OTG_FS,
-        .otype = BDK_GPIO_OTYPE_PP,
-        .pull  = BDK_GPIO_PULL_NONE,
-        .speed = BDK_GPIO_SPEED_VERY_HIGH,
-    };
+    bdk_rcc_clock_config_t clk = USB_EXAMPLE_CLOCK_HSE_168_USB(USB_EXAMPLE_HSE_HZ);
 
-    BDK_ASSERT_OK(bdk_gpio_init(&dm));
-    BDK_ASSERT_OK(bdk_gpio_init(&dp));
+    BDK_ASSERT_OK(bdk_rcc_clock_init(&clk));
 }
 
-/* Device stack: 48 MHz clock, RCC OTGFSEN, core, endpoints, enumeration. */
-static void usb_fs_init(void)
+static void usb_discovery_cn5_power_on(void)
 {
+    bdk_gpio_config_t pwr = {
+        .port  = BDK_GPIO_PORT_C,
+        .pin   = 0,
+        .mode  = BDK_GPIO_MODE_OUTPUT,
+        .otype = BDK_GPIO_OTYPE_PP,
+        .pull  = BDK_GPIO_PULL_NONE,
+        .speed = BDK_GPIO_SPEED_LOW,
+    };
+
+    BDK_ASSERT_OK(bdk_gpio_init(&pwr));
+    bdk_gpio_write_pin(BDK_GPIO_PORT_C, 0, BDK_GPIO_HIGH);
 }
 
-void OTG_FS_IRQHandler(void)
+void Error_Handler(void)
 {
+    for (;;) {
+    }
 }
 
 int main(void)
 {
-    log_redirect_uart2(BDK_UART_BAUD_115200);
-    log_info("usb_example: USART2 console on PA2/PA3");
+    HAL_Init();
+    usb_clock_init();
+    if (HAL_InitTick(TICK_INT_PRIORITY) != HAL_OK) {
+        Error_Handler();
+    }
 
-    usb_pins_init();
-    log_debug("OTG FS DM/DP (PA11/PA12) configured");
-    usb_fs_init();
+    log_redirect_uart2(BDK_UART_BAUD_115200);
+    log_info("usb_example: HAL USBD enumerate (Cube usb_test path)");
+    log_info("usb_example: USART2 ker=%lu Hz sysclk=%lu",
+             (unsigned long)bdk_rcc_usart_ker_clk_hz(BDK_UART_2),
+             (unsigned long)bdk_rcc_get_sysclk_hz());
+
+    usb_discovery_cn5_power_on();
+    MX_USB_DEVICE_Init();
+    log_info("usb_example: USBD started — plug CN5; Pi dmesg + lsusb 0483:5740");
 
     for (;;) {
     }

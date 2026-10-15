@@ -528,6 +528,12 @@ bdk_status_t bdk_rcc_tim_clk_enable(uint8_t tim_index)
     return BDK_ERR_NOT_IMPL;
 }
 
+bdk_status_t bdk_rcc_usb_otg_fs_clk_enable(void)
+{
+    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_OTGFSEN);
+    return BDK_OK;
+}
+
 static uint32_t rcc_pll_input_hz(void)
 {
     if ((RCC->PLLCFGR & RCC_PLLCFGR_PLLSRC) != 0U) {
@@ -603,4 +609,24 @@ uint32_t bdk_rcc_get_pclk2_hz(void)
         return 0U;
     }
     return hclk >> APBPrescTable[tmp];
+}
+
+uint32_t bdk_rcc_usart_ker_clk_hz(bdk_uart_id_t id)
+{
+    /*
+     * RM0090 §6.2: USART1/6 on APB2, USART2–5 on APB1; f_CK for baud is PCLK2/PCLK1.
+     * The APB “×2 when prescaler ≠ 1” rule applies to timers on that bus, not USART.
+     */
+    switch (id) {
+    case BDK_UART_1:
+    case BDK_UART_6:
+        return bdk_rcc_get_pclk2_hz();
+    case BDK_UART_2:
+    case BDK_UART_3:
+    case BDK_UART_4:
+    case BDK_UART_5:
+        return bdk_rcc_get_pclk1_hz();
+    default:
+        return 0U;
+    }
 }

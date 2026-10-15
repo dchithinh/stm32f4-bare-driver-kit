@@ -42,7 +42,7 @@ then flag clear sequence (typically read **SR**, read **DR**).
 
 ## Bring-up checklist (hardware)
 
-- Baud-rate formula vs PCLK (USART2 on APB1 when you add PLL), OVER8, BRR layout
+- **BRR** uses `bdk_rcc_usart_ker_clk_hz(id)` after `bdk_rcc_clock_init` (any SYSCLK/APB divisors)
 - **TXE** vs **TC**, **RXNE** vs **ORE**
 - Logic analyzer: start bit, 8N1, measured bit time
 

@@ -5,7 +5,7 @@
 **MCO1** on **PA8** outputs **PLLCLK ÷ 5** (16 MHz). **SYSCLK** stays on **HSI** 16 MHz.
 
 - `bdk_rcc_clock_init` + `RCC_MCO_SYSCLK_HSI_16MHZ`
-- `bdk_rcc_pll_enable` + `RCC_MCO_PLL_FOR_MCO1` (80 MHz PLLCLK)
+- `bdk_rcc_pll_enable` + `RCC_MCO_PLL_FOR_MCO1` — **PLL from HSE** (`RCC_MCO_HSE_HZ` = 8 MHz on F407 Discovery) → **80 MHz PLLCLK**
 - `bdk_rcc_mco1(BDK_RCC_MCO1_PLL, 5)` — MCO1 prescaler uses ST F4 bit patterns (see HAL `RCC_MCODIV_5`)
 
 ## What it proves

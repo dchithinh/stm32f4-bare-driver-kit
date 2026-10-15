@@ -121,6 +121,11 @@ bdk_status_t bdk_rcc_spi_clk_enable(bdk_spi_id_t id);
 bdk_status_t bdk_rcc_tim_clk_enable(uint8_t tim_index);
 
 /**
+ * @brief Enable USB OTG FS clock on AHB2.
+ */
+bdk_status_t bdk_rcc_usb_otg_fs_clk_enable(void);
+
+/**
  * @brief SYSCLK frequency in hertz from RCC (PLL, HSE, or HSI).
  */
 uint32_t bdk_rcc_get_sysclk_hz(void);
@@ -139,6 +144,13 @@ uint32_t bdk_rcc_get_pclk1_hz(void);
  * @brief APB2 (PCLK2) frequency in hertz.
  */
 uint32_t bdk_rcc_get_pclk2_hz(void);
+
+/**
+ * @brief USART/UART kernel clock for baud (RM0090: PCLK1 or PCLK2 for that block).
+ * @param id USART instance; reads current RCC after any @ref bdk_rcc_clock_init.
+ * @return Hz, or 0 if @p id is invalid or clocks are off.
+ */
+uint32_t bdk_rcc_usart_ker_clk_hz(bdk_uart_id_t id);
 
 #ifdef __cplusplus
 }

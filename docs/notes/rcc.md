@@ -45,7 +45,9 @@ F407 **MCO1 cannot select SYSCLK**; use MCO2 for SYSCLK on the pin.
 
 ### Query after init
 
-`bdk_rcc_get_sysclk_hz()`, `bdk_rcc_get_hclk_hz()`, `bdk_rcc_get_pclk1_hz()`, `bdk_rcc_get_pclk2_hz()` read RCC registers (UART baud, I2C CR2 FREQ, etc.).
+`bdk_rcc_get_sysclk_hz()`, `bdk_rcc_get_hclk_hz()`, `bdk_rcc_get_pclk1_hz()`, `bdk_rcc_get_pclk2_hz()` read RCC registers from current `CFGR` / `PLLCFGR`.
+
+**USART baud:** use `bdk_rcc_usart_ker_clk_hz(id)` (= **PCLK1** or **PCLK2** for that USART; not SYSCLK, and not the timer 2×APB rule). **I2C** CR2 FREQ uses `bdk_rcc_get_pclk1_hz()` the same way.
 
 ### F407 PLL reminders
 

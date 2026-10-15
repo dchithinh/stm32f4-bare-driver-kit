@@ -27,8 +27,22 @@
 #include "bdk_gpio.h"
 #include "bdk_status.h"
 #include "bdk_uart.h"
+#include "stm32f4xx.h"
 
 #define MAX_CALLBACKS 32
+
+static uint32_t uart_log_irq_primask;
+
+static void uart_log_irq_lock(bool lock, void *udata)
+{
+  (void)udata;
+  if (lock) {
+    uart_log_irq_primask = __get_PRIMASK();
+    __disable_irq();
+  } else {
+    __set_PRIMASK(uart_log_irq_primask);
+  }
+}
 
 typedef struct {
   log_LogFn fn;
@@ -213,12 +227,14 @@ void log_redirect_uart2(uint32_t baud)
     return;
   }
 
-  BDK_ASSERT_OK(bdk_gpio_init(&tx));
-  BDK_ASSERT_OK(bdk_gpio_init(&rx));
-  BDK_ASSERT_OK(bdk_uart_init(&uart_cfg));
+  if (bdk_gpio_init(&tx) != BDK_OK || bdk_gpio_init(&rx) != BDK_OK ||
+      bdk_uart_init(&uart_cfg) != BDK_OK) {
+    return;
+  }
 
   log_uart_id = BDK_UART_2;
   log_set_quiet(true);
+  log_set_lock(uart_log_irq_lock, NULL);
   if (log_add_callback(uart_sink_callback, NULL, LOG_TRACE) != 0) {
     return;
   }
