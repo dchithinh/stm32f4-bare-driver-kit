@@ -28,7 +28,10 @@ add_library(bdk_stm32f4 STATIC
     src/bdk_i2c.c
     src/bdk_spi.c
     src/bdk_timer.c
-    src/bdk_usb.c
+    src/bdk_usb/bdk_usb.c
+    src/bdk_usb/bdk_usbd.c
+    src/bdk_usb/cdc/bdk_cdc.c
+    src/bdk_usb/cdc/bdk_cdc_desc.c
     startup/startup_stm32f407xx.s
     startup/system_stm32f4xx.c
     startup/syscalls.c
@@ -41,6 +44,8 @@ set_source_files_properties(
 
 target_include_directories(bdk_stm32f4 PUBLIC
     "${BDK_SDK_PATH}/inc"
+    "${BDK_SDK_PATH}/inc/bdk_usb"
+    "${BDK_SDK_PATH}/inc/bdk_usb/cdc"
     "${BDK_SDK_PATH}/cmsis/cmsis_core/Include"
     "${BDK_SDK_PATH}/cmsis/cmsis_device_f4/Include"
 )

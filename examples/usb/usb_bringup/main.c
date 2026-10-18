@@ -85,9 +85,11 @@ static void log_usb_irq_stats(uint32_t nvic_count)
     log_info("usb_bringup: OTG_FS_IRQHandler #%lu (bdk handler_calls=%lu)",
              (unsigned long)nvic_count, (unsigned long)st.handler_calls);
     log_info("usb_bringup:   usbrst=%lu enumdne=%lu rxflvl=%lu ep0_stup=%lu "
-             "fifo_disc=%lu",
+             "setup_updt=%lu in_xfrc=%lu status_done=%lu fifo_disc=%lu",
              (unsigned long)st.usbrst, (unsigned long)st.enumdne,
              (unsigned long)st.rxflvl_batches, (unsigned long)st.ep0_stup,
+             (unsigned long)st.ep0_setup_updt, (unsigned long)st.ep0_in_xfrc,
+             (unsigned long)st.ep0_status_done,
              (unsigned long)st.fifo_bytes_discarded);
 }
 

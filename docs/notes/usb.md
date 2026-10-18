@@ -1,30 +1,41 @@
 # USB notes (STM32F4 OTG FS)
 
+Sources: `inc/bdk_usb/`, `src/bdk_usb/` (`bdk_usb.c`, `bdk_usbd.c`, `cdc/bdk_cdc*.c`).
+Layer diagram: [`src/bdk_usb/README.md`](../../src/bdk_usb/README.md).
+
 ## Layers
 
-| Layer | In this kit |
-|-------|-------------|
-| 48 MHz USB clock + SYSCLK | App `bdk_rcc_clock_init()` (e.g. `USB_EXAMPLE_CLOCK_HSE_168_USB`) |
+| Layer | Module |
+|-------|--------|
+| 48 MHz USB clock + SYSCLK | App `bdk_rcc_clock_init()` |
 | DM/DP pins | `bdk_gpio_init` + `BDK_GPIO_AF_OTG_FS` |
-| OTG FS hardware | **`bdk_usb`** — device mode, PHY, soft connect, IRQ demux |
-| Descriptors, EP0, CDC/HID | **App** or third-party stack (TinyUSB, etc.) |
+| OTG FS hardware | **`bdk_usb`** — PHY, FIFO, IRQ, EP0 transfer primitives |
+| Chapter 9 + EP0 policy | **`bdk_usbd`** — GET_DESCRIPTOR, SET_ADDRESS, SET_CONFIGURATION, class hook |
+| CDC ACM | **`bdk_cdc`** (`inc/bdk_usb/cdc/`) — class EP0 + EP open on config |
+| HID / MSC | Future class modules or TinyUSB |
 
-## `bdk_usb` API
+## `bdk_usb`
 
-- `bdk_usb_init(BDK_USB_OTG_FS, &cfg)` — core reset, FS device mode, FIFO sizing, soft-disconnect.
-- `bdk_usb_connect` / `bdk_usb_disconnect` — DCTL SDIS.
+- `bdk_usb_init` — core reset, FS device mode, FIFO sizing, soft-disconnect.
+- `bdk_usb_connect` / `disconnect` — DCTL SDIS.
 - `bdk_usb_irq_enable` + `bdk_usb_irq_handler` from `OTG_FS_IRQHandler`.
-- `bdk_usb_set_events` — optional `on_bus_reset` / `on_enum_done` for a stack.
+- `bdk_usb_set_ep0_stack` — used by `bdk_usbd` (SETUP handled in `bdk_usbd_poll`).
 
-**Preconditions:** PLL **PLLQ → 48 MHz** before `bdk_usb_init`. PA11/PA12 muxed to OTG_FS.
+## `bdk_usbd`
 
-Discovery **CN5** device: drive **PC0** high (OTG_FS_PowerSwitchOn) before `bdk_usb_init`. Example uses `ignore_vbus_sense = 1` (GCCFG NOVBUSSENS). Soft connect is `bdk_usb_connect` (same role as clearing DCTL SDIS in `HAL_PCD_Start`); enumeration still needs EP0 + descriptors in the app.
+- `bdk_usbd_init(id, hw_cfg, &descriptors)` — calls `bdk_usb_init`, registers EP0 stack.
+- `bdk_usbd_poll` — deferred SETUP (main loop, not ISR).
+- `bdk_usbd_set_class_setup_handler` — class/vendor EP0 requests.
+- `bdk_usbd_connect`, `bdk_usbd_irq_handler`, `bdk_usbd_irq_enable`.
+
+**Descriptors** are app-owned (`bdk_usbd_descriptors_t`: device, config, optional strings).
 
 ## Lab examples
 
 | Path | Stack |
 |------|--------|
-| `examples/usb/usb_bringup/` | `bdk_usb` init — connect, IRQ stats, SETUP discard |
-| `examples/usb/usb_example/` | BDK + HAL/USBD — full enumeration (compare) |
+| `examples/usb/usb_bringup/` | `bdk_usb` only — no `bdk_usbd` |
+| `examples/usb/usb_cdc/` | `bdk_cdc` (thin board `main.c`) |
+| `examples/usb/usb_example/` | BDK clock/log + HAL/USBD CDC (reference) |
 
-Enumeration requires a device stack on top of `bdk_usb` (HAL/USBD in `usb_example`, or future TinyUSB / in-kit EP0).
+Discovery **CN5**: PC0 high before init; `ignore_vbus_sense = 1` for PA11/PA12 device port.

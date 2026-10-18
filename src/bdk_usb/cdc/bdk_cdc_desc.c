@@ -1,0 +1,57 @@
+#include "bdk_cdc_desc.h"
+
+/* FS CDC layout (ST-style EP 0x01 / 0x81 / 0x82). */
+const uint8_t bdk_cdc_config_desc[67] = {
+    0x09, 0x02, 0x43, 0x00, 0x02, 0x01, 0x00, 0xC0, 0x32,
+    0x09, 0x04, 0x00, 0x00, 0x01, 0x02, 0x02, 0x01, 0x00,
+    0x05, 0x24, 0x00, 0x10, 0x01,
+    0x05, 0x24, 0x01, 0x00, 0x01,
+    0x04, 0x24, 0x02, 0x02,
+    0x05, 0x24, 0x06, 0x00, 0x01,
+    0x07, 0x05, 0x82, 0x03, 0x08, 0x00, 0x10,
+    0x09, 0x04, 0x01, 0x00, 0x02, 0x0A, 0x00, 0x00, 0x00,
+    0x07, 0x05, 0x01, 0x02, 0x40, 0x00, 0x00,
+    0x07, 0x05, 0x81, 0x02, 0x40, 0x00, 0x00,
+};
+
+const uint8_t bdk_cdc_device_desc[18] = {
+    0x12, 0x01, 0x00, 0x02, 0x02, 0x02, 0x00, 0x40,
+    0x83, 0x04, 0x40, 0x57, 0x00, 0x02, 0x01, 0x02, 0x03, 0x01,
+};
+
+static const uint8_t str_lang[] = {0x04, 0x03, 0x09, 0x04};
+static const uint8_t str_mfg[] = {
+    0x24, 0x03, 'S', 0, 'T', 0, 'M', 0, 'i', 0, 'c', 0, 'r', 0, 'o', 0,
+    'e', 0, 'l', 0, 'e', 0, 'c', 0, 't', 0, 'r', 0, 'o', 0, 'n', 0,
+    'i', 0, 'c', 0, 's', 0,
+};
+static const uint8_t str_product[] = {
+    0x42, 0x03, 'S', 0, 'T', 0, 'M', 0, '3', 0, '2', 0, ' ', 0, 'V', 0,
+    'i', 0, 'r', 0, 't', 0, 'u', 0, 'a', 0, 'l', 0, ' ', 0, 'C', 0,
+    'o', 0, 'm', 0, 'P', 0, 'o', 0, 'r', 0, 't', 0, ' ', 0, 'F', 0,
+    'S', 0, ' ', 0, 'M', 0, 'o', 0, 'd', 0, 'e', 0,
+};
+static const uint8_t str_serial[] = {
+    0x10, 0x03, 'B', 0, 'D', 0, 'K', 0, '0', 0, '0', 0, '0', 0, '1', 0,
+};
+
+static const uint8_t *const cdc_strings[] = {
+    str_lang,
+    str_mfg,
+    str_product,
+    str_serial,
+};
+
+static const bdk_usbd_descriptors_t cdc_default_desc = {
+    .device       = bdk_cdc_device_desc,
+    .device_len   = sizeof(bdk_cdc_device_desc),
+    .config       = bdk_cdc_config_desc,
+    .config_len   = sizeof(bdk_cdc_config_desc),
+    .strings      = cdc_strings,
+    .string_count = 4U,
+};
+
+const bdk_usbd_descriptors_t *bdk_cdc_default_descriptors(void)
+{
+    return &cdc_default_desc;
+}

@@ -28,9 +28,9 @@ cmake --build build --target usb_bringup
 | 8 | `bdk_usb_connect()` | Clear **DCTL SDIS** — device visible on bus |
 | 9 | `for (;;)` `poll_usb_events()` | Log NVIC count + IRQ stats (not in ISR) |
 
-**Not used:** `bdk_usb_set_setup_handler` — SETUP packets are **read from RX FIFO and discarded** (`fifo_disc`).
+**Not used:** device stack (`bdk_usbd`) — SETUP packets are **read from RX FIFO and discarded** (`fifo_disc`) unless an EP0 stack is registered.
 
-### Inside `bdk_usb_init` (`src/bdk_usb.c`)
+### Inside `bdk_usb_init` (`src/bdk_usb/bdk_usb.c`)
 
 | Step | Action |
 |------|--------|
@@ -83,5 +83,7 @@ sequenceDiagram
 | In place | Still needed for full enumeration |
 |----------|-----------------------------------|
 | 48 MHz USB clock, CN5 power, DM/DP | EP0 replies (descriptors, SET_ADDRESS, …) |
-| Soft connect, `USBRST` / `ENUMDNE` | `bdk_usb_set_setup_handler` + control state machine |
+| Soft connect, `USBRST` / `ENUMDNE` | `bdk_usbd` or custom EP0 stack |
 | Host SETUP in FIFO (`fifo_disc`) | Class endpoints + TX FIFO split in packet RAM |
+
+For CDC descriptors on BDK stack, see [`usb_cdc`](../usb_cdc/).
