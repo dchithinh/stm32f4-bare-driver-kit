@@ -5,10 +5,20 @@
 #include "bdk_usb_ll.h"
 
 #define BDK_USBD_REQ_GET_STATUS          0U
+#define BDK_USBD_REQ_CLEAR_FEATURE       1U
+#define BDK_USBD_REQ_SET_FEATURE         3U
 #define BDK_USBD_REQ_SET_ADDRESS         5U
 #define BDK_USBD_REQ_GET_DESCRIPTOR      6U
 #define BDK_USBD_REQ_SET_CONFIGURATION   9U
 #define BDK_USBD_REQ_GET_CONFIGURATION   8U
+#define BDK_USBD_REQ_GET_INTERFACE       10U
+#define BDK_USBD_REQ_SET_INTERFACE       11U
+
+#define BDK_USBD_FEATURE_ENDPOINT_HALT   0U
+#define BDK_USBD_RECIP_MASK              0x1FU
+#define BDK_USBD_RECIP_DEVICE            0U
+#define BDK_USBD_RECIP_INTERFACE         1U
+#define BDK_USBD_RECIP_ENDPOINT          2U
 
 #define BDK_USBD_DESC_DEVICE             1U
 #define BDK_USBD_DESC_CONFIGURATION      2U
@@ -147,11 +157,66 @@ static void usbd_handle_standard_setup(const bdk_usb_setup_t *setup)
 
     case BDK_USBD_REQ_GET_STATUS:
         if (setup->wLength == 2U) {
-            static const uint8_t z[2] = {0U, 0U};
-            bdk_usb_ll_ep0_in(usbd_ctx.id, z, 2U);
+            static uint8_t st[2];
+            uint8_t recip = (uint8_t)(setup->bmRequestType & BDK_USBD_RECIP_MASK);
+
+            st[0] = 0U;
+            st[1] = 0U;
+            if (recip == BDK_USBD_RECIP_ENDPOINT &&
+                bdk_usb_ep_is_stalled(usbd_ctx.id, (uint8_t)setup->wIndex) != 0U) {
+                st[0] = 1U;
+            }
+            bdk_usb_ll_ep0_in(usbd_ctx.id, st, 2U);
             return;
         }
         bdk_usb_ll_ep0_stall(usbd_ctx.id);
+        return;
+
+    case BDK_USBD_REQ_CLEAR_FEATURE:
+    case BDK_USBD_REQ_SET_FEATURE: {
+        uint8_t recip = (uint8_t)(setup->bmRequestType & BDK_USBD_RECIP_MASK);
+
+        if (recip == BDK_USBD_RECIP_ENDPOINT &&
+            setup->wValue == BDK_USBD_FEATURE_ENDPOINT_HALT) {
+            bdk_status_t st;
+
+            if (setup->bRequest == BDK_USBD_REQ_SET_FEATURE) {
+                st = bdk_usb_ep_stall(usbd_ctx.id, (uint8_t)setup->wIndex);
+            } else {
+                st = bdk_usb_ep_clear_stall(usbd_ctx.id, (uint8_t)setup->wIndex);
+            }
+            if (st != BDK_OK) {
+                bdk_usb_ll_ep0_stall(usbd_ctx.id);
+                return;
+            }
+            bdk_usb_ll_ep0_in(usbd_ctx.id, NULL, 0U);
+            return;
+        }
+        if (recip == BDK_USBD_RECIP_DEVICE) {
+            bdk_usb_ll_ep0_in(usbd_ctx.id, NULL, 0U);
+            return;
+        }
+        bdk_usb_ll_ep0_stall(usbd_ctx.id);
+        return;
+    }
+
+    case BDK_USBD_REQ_GET_INTERFACE:
+        if (usbd_ctx.config_value == 0U || setup->wLength != 1U) {
+            bdk_usb_ll_ep0_stall(usbd_ctx.id);
+            return;
+        }
+        {
+            static const uint8_t if_alt0 = 0U;
+            bdk_usb_ll_ep0_in(usbd_ctx.id, &if_alt0, 1U);
+        }
+        return;
+
+    case BDK_USBD_REQ_SET_INTERFACE:
+        if (usbd_ctx.config_value == 0U) {
+            bdk_usb_ll_ep0_stall(usbd_ctx.id);
+            return;
+        }
+        bdk_usb_ll_ep0_in(usbd_ctx.id, NULL, 0U);
         return;
 
     default:
@@ -165,6 +230,8 @@ static void usbd_on_setup(const uint8_t setup_pkt[8])
     bdk_usb_setup_t setup;
     const uint8_t  *tx     = NULL;
     uint16_t        tx_len = 0U;
+    uint8_t        *rx     = NULL;
+    uint16_t        rx_len = 0U;
     bdk_status_t    st;
     uint8_t         i;
 
@@ -183,8 +250,23 @@ static void usbd_on_setup(const uint8_t setup_pkt[8])
     if (usbd_ctx.class_setup != NULL &&
         ((setup.bmRequestType & BDK_USBD_REQ_TYPE_MASK) == BDK_USBD_REQ_TYPE_CLASS ||
          (setup.bmRequestType & BDK_USBD_REQ_TYPE_MASK) == BDK_USBD_REQ_TYPE_VENDOR)) {
-        st = usbd_ctx.class_setup(&setup, &tx, &tx_len);
-        if (st != BDK_OK || (tx_len > 0U && tx == NULL)) {
+        st = usbd_ctx.class_setup(&setup, &tx, &tx_len, &rx, &rx_len);
+        if (st != BDK_OK) {
+            bdk_usb_ll_ep0_stall(usbd_ctx.id);
+            return;
+        }
+        if ((setup.bmRequestType & BDK_USBD_REQ_DIR_IN) == 0U && setup.wLength > 0U) {
+            if (rx == NULL || rx_len == 0U) {
+                bdk_usb_ll_ep0_stall(usbd_ctx.id);
+                return;
+            }
+            if (rx_len > setup.wLength) {
+                rx_len = setup.wLength;
+            }
+            bdk_usb_ll_ep0_out(usbd_ctx.id, rx, rx_len);
+            return;
+        }
+        if (tx_len > 0U && tx == NULL) {
             bdk_usb_ll_ep0_stall(usbd_ctx.id);
             return;
         }

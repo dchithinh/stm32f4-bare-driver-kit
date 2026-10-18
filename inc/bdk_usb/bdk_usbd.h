@@ -43,11 +43,14 @@ typedef struct {
 
 /**
  * @brief Class or vendor control request on EP0 (optional).
- * @return BDK_OK with @p tx/@p tx_len for IN data; BDK_ERR to STALL.
+ * @return BDK_OK with @p tx/@p tx_len for IN data, or @p rx/@p rx_len for OUT
+ *         data; BDK_ERR to STALL.
  */
 typedef bdk_status_t (*bdk_usbd_class_setup_fn)(const bdk_usb_setup_t *setup,
                                                 const uint8_t **tx,
-                                                uint16_t *tx_len);
+                                                uint16_t *tx_len,
+                                                uint8_t **rx,
+                                                uint16_t *rx_len);
 
 /**
  * @brief Called when configuration changes (@c SET_CONFIGURATION or bus reset).

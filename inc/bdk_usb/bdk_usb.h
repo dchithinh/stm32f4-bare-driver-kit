@@ -117,6 +117,28 @@ bdk_status_t bdk_usb_ep_open(bdk_usb_id_t id, uint8_t ep_addr,
 /** @brief Deactivate endpoint @p ep_addr (address bit 0x80 = IN). */
 bdk_status_t bdk_usb_ep_close(bdk_usb_id_t id, uint8_t ep_addr);
 
+/**
+ * @brief Set STALL on a non-zero endpoint (USB @c SET_FEATURE ENDPOINT_HALT).
+ */
+bdk_status_t bdk_usb_ep_stall(bdk_usb_id_t id, uint8_t ep_addr);
+
+/**
+ * @brief Clear STALL and reset DATA0 on a non-zero endpoint
+ *        (USB @c CLEAR_FEATURE ENDPOINT_HALT).
+ */
+bdk_status_t bdk_usb_ep_clear_stall(bdk_usb_id_t id, uint8_t ep_addr);
+
+/** @brief 1 if the endpoint STALL bit is set. */
+uint8_t bdk_usb_ep_is_stalled(bdk_usb_id_t id, uint8_t ep_addr);
+
+/**
+ * @brief Start an IN transfer on a non-zero endpoint (one packet, up to MPS).
+ * @param data Payload; may be NULL when @p len is 0 (ZLP).
+ * @return @c BDK_ERR_BUSY if the endpoint is still transmitting.
+ */
+bdk_status_t bdk_usb_ep_in_write(bdk_usb_id_t id, uint8_t ep_addr,
+                                 const uint8_t *data, uint16_t len);
+
 #ifdef __cplusplus
 }
 #endif

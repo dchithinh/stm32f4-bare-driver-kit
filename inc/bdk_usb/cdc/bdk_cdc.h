@@ -29,6 +29,18 @@ typedef struct {
 bdk_status_t bdk_cdc_init(bdk_usb_id_t id, const bdk_usb_config_t *hw,
                           const bdk_cdc_config_t *cfg);
 
+/**
+ * @brief Send data to the host on the CDC bulk IN endpoint.
+ * @pre Device is configured (@c SET_CONFIGURATION).
+ * @param data Payload; must remain valid until the transfer completes.
+ * @param len  Byte count (0..@c BDK_CDC_BULK_MPS).
+ * @return @c BDK_ERR_BUSY if a previous IN is still in progress.
+ */
+bdk_status_t bdk_cdc_write(bdk_usb_id_t id, const uint8_t *data, uint16_t len);
+
+/** @brief Last @c SET_CONTROL_LINE_STATE value (bit 0 = DTR). */
+uint8_t bdk_cdc_control_line_state(bdk_usb_id_t id);
+
 /** @copydoc bdk_usbd_poll */
 void bdk_cdc_poll(bdk_usb_id_t id);
 

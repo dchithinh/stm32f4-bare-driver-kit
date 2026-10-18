@@ -21,6 +21,12 @@ extern "C" {
  */
 void bdk_usb_ll_ep0_in(bdk_usb_id_t id, const uint8_t *data, uint16_t len);
 
+/**
+ * @brief Arm EP0 for a host-to-device data stage (control OUT).
+ * @pre Call from main context during SETUP handling, not from OTG ISR.
+ */
+void bdk_usb_ll_ep0_out(bdk_usb_id_t id, uint8_t *data, uint16_t len);
+
 /** @brief STALL both directions of EP0. */
 void bdk_usb_ll_ep0_stall(bdk_usb_id_t id);
 

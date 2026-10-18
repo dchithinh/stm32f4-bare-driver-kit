@@ -1,7 +1,9 @@
 /**
  * Discovery CN5 OTG FS — @ref bdk_cdc (default ST-style CDC ACM descriptors).
- * Bulk data path (IN/OUT transfers) not implemented yet — see README.
+ * After SET_CONFIGURATION, sends a short banner on bulk IN about once per second.
  */
+#include "stm32f4xx.h"
+
 #include "bdk_gpio.h"
 #include "bdk_rcc.h"
 #include "bdk_cdc.h"
@@ -14,6 +16,26 @@
 
 static volatile uint32_t usb_bus_reset_count;
 static volatile uint32_t usb_enum_done_count;
+static uint8_t           cdc_last_line_state;
+static uint8_t           cdc_banner_logged;
+
+static const uint8_t cdc_banner[] = "BDK CDC\r\n";
+
+#define CDC_BANNER_INTERVAL_MS  1000U
+
+extern uint32_t SystemCoreClock;
+
+static void dwt_cycle_counter_enable(void)
+{
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CYCCNT       = 0U;
+    DWT->CTRL        |= DWT_CTRL_CYCCNTENA_Msk;
+}
+
+static uint32_t dwt_cycles_elapsed(uint32_t since)
+{
+    return DWT->CYCCNT - since;
+}
 
 static void board_usb_init(void)
 {
@@ -49,6 +71,8 @@ static void board_usb_init(void)
 static void on_usb_bus_reset(void)
 {
     usb_bus_reset_count++;
+    cdc_last_line_state = 0U;
+    cdc_banner_logged   = 0U;
 }
 
 static void on_usb_enum_done(void)
@@ -139,10 +163,8 @@ static void poll_usb_debug(uint32_t *last_reset, uint32_t *last_enum,
         log_setup_packet(tr.setup_count, tr.last_setup);
         *last_setup_count = tr.setup_count;
         log_usb_irq_stats();
-    } else if (st.handler_calls != *last_handler_calls) {
-        *last_handler_calls = st.handler_calls;
-        log_usb_irq_stats();
     }
+    *last_handler_calls = st.handler_calls;
 }
 
 int main(void)
@@ -153,13 +175,20 @@ int main(void)
         .on_bus_reset = on_usb_bus_reset,
         .on_enum_done = on_usb_enum_done,
     };
-    uint32_t last_reset         = 0U;
-    uint32_t last_enum          = 0U;
-    uint32_t last_setup_count   = 0U;
-    uint32_t last_handler_calls = 0U;
+    uint32_t     last_reset         = 0U;
+    uint32_t     last_enum          = 0U;
+    uint32_t     last_setup_count   = 0U;
+    uint32_t     last_handler_calls = 0U;
+    uint32_t     last_banner_cyc    = 0U;
+    uint32_t     banner_interval_cyc;
+    uint8_t      line_state;
+    bdk_status_t st;
 
     board_usb_init();
+    dwt_cycle_counter_enable();
+    banner_interval_cyc = (SystemCoreClock / 1000U) * CDC_BANNER_INTERVAL_MS;
     log_redirect_uart2(115200);
+    log_set_lock(NULL, NULL);
     log_info("usb_cdc: bdk_cdc (USART2 debug log)");
     log_info("usb_cdc: plug CN5 — paste UART log + Pi dmesg");
 
@@ -171,5 +200,25 @@ int main(void)
     for (;;) {
         bdk_cdc_poll(BDK_USB_OTG_FS);
         poll_usb_debug(&last_reset, &last_enum, &last_setup_count, &last_handler_calls);
+        line_state = bdk_cdc_control_line_state(BDK_USB_OTG_FS);
+        if (line_state != cdc_last_line_state) {
+            cdc_last_line_state = line_state;
+            log_info("usb_cdc: SET_CONTROL_LINE_STATE=0x%02x DTR=%u",
+                     (unsigned)line_state, (unsigned)(line_state & 1U));
+        }
+        if (bdk_usbd_config_value(BDK_USB_OTG_FS) != 0U &&
+            dwt_cycles_elapsed(last_banner_cyc) >= banner_interval_cyc) {
+            st = bdk_cdc_write(BDK_USB_OTG_FS, cdc_banner,
+                               (uint16_t)(sizeof(cdc_banner) - 1U));
+            if (st == BDK_OK) {
+                last_banner_cyc = DWT->CYCCNT;
+                if (cdc_banner_logged == 0U) {
+                    cdc_banner_logged = 1U;
+                    log_info("usb_cdc: bulk IN banner queued");
+                }
+            } else if (st != BDK_ERR_BUSY) {
+                log_info("usb_cdc: bulk IN write st=%d", (int)st);
+            }
+        }
     }
 }
