@@ -8,7 +8,7 @@ Sources: `bdk_usb.c`, `bdk_usbd.c`, `cdc/bdk_cdc.c`, `cdc/bdk_cdc_desc.c` (in `b
 
 | Layer | Source / header | Responsibility |
 |-------|-----------------|----------------|
-| **CDC ACM class** | `cdc/bdk_cdc.c`, `cdc/bdk_cdc.h` | Class EP0, default descriptors, open bulk/cmd EPs on `SET_CONFIGURATION` |
+| **CDC ACM class** | `cdc/bdk_cdc.c`, `cdc/bdk_cdc.h` | Class EP0, default descriptors, bulk IN/OUT on `SET_CONFIGURATION`, `bdk_cdc_poll_in` |
 | **Device stack** | `bdk_usbd.c`, `bdk_usbd.h` | USB Chapter 9 on EP0; class/config hooks |
 | **EP0 bridge** | `bdk_usb_ll.h` (impl in `bdk_usb.c`) | IN data stage, STALL, deferred address, poll deferred SETUP |
 | **Device controller (DCD)** | `bdk_usb.c`, `bdk_usb.h` | OTG FS: init, `bdk_usb_ep_open`, IRQ, FIFO, EP0 |

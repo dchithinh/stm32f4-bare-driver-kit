@@ -67,6 +67,12 @@ static bdk_usb_irq_stats_t usb_irq_stats;
 static uint8_t             usb_in_busy[BDK_USB_FS_DEV_EPS];
 static const uint8_t      *usb_in_ptr[BDK_USB_FS_DEV_EPS];
 static uint16_t            usb_in_len[BDK_USB_FS_DEV_EPS];
+static uint8_t             usb_out_armed[BDK_USB_FS_DEV_EPS];
+static uint8_t            *usb_out_buf[BDK_USB_FS_DEV_EPS];
+static uint16_t            usb_out_arm_xfersize[BDK_USB_FS_DEV_EPS];
+static uint16_t            usb_out_pos[BDK_USB_FS_DEV_EPS];
+static volatile uint8_t    usb_out_complete[BDK_USB_FS_DEV_EPS];
+static volatile uint16_t   usb_out_recv_len[BDK_USB_FS_DEV_EPS];
 
 
 static USB_OTG_INEndpointTypeDef *usb_in_ep(USB_OTG_GlobalTypeDef *usb, uint32_t num)
@@ -100,6 +106,8 @@ static bdk_status_t usb_flush_tx_fifo(USB_OTG_GlobalTypeDef *usb, uint32_t fifo_
 static void usb_flush_rx_fifo(USB_OTG_GlobalTypeDef *usb);
 static bdk_status_t usb_set_device_mode(USB_OTG_GlobalTypeDef *usb);
 static void usb_set_turnaround_time(USB_OTG_GlobalTypeDef *usb, uint32_t hclk_hz);
+static void usb_ep_out_start(USB_OTG_GlobalTypeDef *usb, uint32_t epnum, uint16_t len);
+static void usb_ep_out_on_xfrc(USB_OTG_GlobalTypeDef *usb, uint32_t epnum);
 
 static USB_OTG_GlobalTypeDef *usb_global(bdk_usb_id_t id)
 {
@@ -112,6 +120,17 @@ static USB_OTG_GlobalTypeDef *usb_global(bdk_usb_id_t id)
 static USB_OTG_DeviceTypeDef *usb_device(USB_OTG_GlobalTypeDef *usb)
 {
     return (USB_OTG_DeviceTypeDef *)BDK_USB_OTG_REG(usb, USB_OTG_DEVICE_BASE);
+}
+
+/* DAINTMSK: IN bits [15:0], OUT bits [31:16]. OEPM is 0xFFFF0000, not bit 0. */
+static uint32_t usb_daintmsk_in_bit(uint32_t epnum)
+{
+    return USB_OTG_DAINTMSK_IEPM & (1UL << epnum);
+}
+
+static uint32_t usb_daintmsk_out_bit(uint32_t epnum)
+{
+    return USB_OTG_DAINTMSK_OEPM & ((1UL << epnum) << 16);
 }
 
 static bdk_status_t usb_wait_grstctl(USB_OTG_GlobalTypeDef *usb, uint32_t mask, int want_set)
@@ -604,6 +623,23 @@ static void usb_rx_fifo_service(USB_OTG_GlobalTypeDef *usb)
                 if (usb_ep0_out_pos >= usb_ep0_out_len) {
                     usb_ep0_out_data_complete(usb);
                 }
+            } else if (epnum != 0U && bcnt > 0U) {
+                uint16_t room;
+                uint16_t copy;
+
+                if (usb_out_armed[epnum] != 0U && usb_out_buf[epnum] != NULL) {
+                    room = (uint16_t)(usb_out_arm_xfersize[epnum] - usb_out_pos[epnum]);
+                    copy = (bcnt > room) ? room : (uint16_t)bcnt;
+                    if (copy > 0U) {
+                        usb_read_fifo(usb, usb_out_buf[epnum] + usb_out_pos[epnum], copy);
+                        usb_out_pos[epnum] += copy;
+                    }
+                    if (copy < bcnt) {
+                        usb_read_fifo_discard(usb, bcnt - copy);
+                    }
+                } else {
+                    usb_read_fifo_discard(usb, bcnt);
+                }
             } else if (bcnt > 0U) {
                 usb_read_fifo_discard(usb, bcnt);
             }
@@ -639,6 +675,8 @@ static void usb_oepint_service(USB_OTG_GlobalTypeDef *usb)
                 } else if (usb_ep0_stage == BDK_USB_EP0_STAGE_STATUS_OUT) {
                     usb_ep0_status_complete(usb);
                 }
+            } else {
+                usb_ep_out_on_xfrc(usb, epnum);
             }
         }
         if ((epint & USB_OTG_DOEPINT_OTEPSPR) != 0U) {
@@ -754,8 +792,8 @@ static void usb_ep0_activate(USB_OTG_GlobalTypeDef *usb)
     USB_OTG_OUTEndpointTypeDef *out0 = usb_out_ep(usb, 0U);
 
     /* USB_ActivateEndpoint() for control EP0 IN/OUT (usbd_core opens EP0 on reset). */
-    SET_BIT(dev->DAINTMSK, USB_OTG_DAINTMSK_IEPM & (1UL << 0));
-    SET_BIT(dev->DAINTMSK, (USB_OTG_DAINTMSK_OEPM & (1UL << 0)) << 16);
+    SET_BIT(dev->DAINTMSK, usb_daintmsk_in_bit(0U));
+    SET_BIT(dev->DAINTMSK, usb_daintmsk_out_bit(0U));
 
     MODIFY_REG(in0->DIEPCTL,
                USB_OTG_DIEPCTL_MPSIZ | USB_OTG_DIEPCTL_EPTYP | USB_OTG_DIEPCTL_TXFNUM,
@@ -821,9 +859,15 @@ static void usb_device_on_bus_reset(USB_OTG_GlobalTypeDef *usb)
     usb_ep0_out_pos      = 0U;
     usb_ep0_out_arm_xfer = 0U;
     for (i = 0U; i < BDK_USB_FS_DEV_EPS; i++) {
-        usb_in_busy[i] = 0U;
-        usb_in_ptr[i]  = NULL;
-        usb_in_len[i]  = 0U;
+        usb_in_busy[i]          = 0U;
+        usb_in_ptr[i]           = NULL;
+        usb_in_len[i]           = 0U;
+        usb_out_armed[i]        = 0U;
+        usb_out_buf[i]          = NULL;
+        usb_out_arm_xfersize[i] = 0U;
+        usb_out_pos[i]          = 0U;
+        usb_out_complete[i]     = 0U;
+        usb_out_recv_len[i]     = 0U;
     }
     usb_device_ep0_prepare(usb);
     if (usb_ep0_stack.on_bus_reset != NULL) {
@@ -1138,7 +1182,7 @@ static void usb_ep_deactivate(USB_OTG_GlobalTypeDef *usb, uint8_t ep_addr)
         if (READ_BIT(in->DIEPCTL, USB_OTG_DIEPCTL_EPENA) != 0U) {
             SET_BIT(in->DIEPCTL, USB_OTG_DIEPCTL_SNAK | USB_OTG_DIEPCTL_EPDIS);
         }
-        CLEAR_BIT(dev->DAINTMSK, USB_OTG_DAINTMSK_IEPM & (1UL << epnum));
+        CLEAR_BIT(dev->DAINTMSK, usb_daintmsk_in_bit(epnum));
         CLEAR_BIT(in->DIEPCTL,
                   USB_OTG_DIEPCTL_USBAEP | USB_OTG_DIEPCTL_MPSIZ | USB_OTG_DIEPCTL_TXFNUM |
                       USB_OTG_DIEPCTL_SD0PID_SEVNFRM | USB_OTG_DIEPCTL_EPTYP);
@@ -1148,7 +1192,7 @@ static void usb_ep_deactivate(USB_OTG_GlobalTypeDef *usb, uint8_t ep_addr)
         if (READ_BIT(out->DOEPCTL, USB_OTG_DOEPCTL_EPENA) != 0U) {
             SET_BIT(out->DOEPCTL, USB_OTG_DOEPCTL_SNAK | USB_OTG_DOEPCTL_EPDIS);
         }
-        CLEAR_BIT(dev->DAINTMSK, (USB_OTG_DAINTMSK_OEPM & (1UL << epnum)) << 16);
+        CLEAR_BIT(dev->DAINTMSK, usb_daintmsk_out_bit(epnum));
         CLEAR_BIT(out->DOEPCTL,
                   USB_OTG_DOEPCTL_USBAEP | USB_OTG_DOEPCTL_MPSIZ |
                       USB_OTG_DOEPCTL_SD0PID_SEVNFRM | USB_OTG_DOEPCTL_EPTYP);
@@ -1169,7 +1213,7 @@ static bdk_status_t usb_ep_activate(USB_OTG_GlobalTypeDef *usb, uint8_t ep_addr,
     if ((ep_addr & 0x80U) != 0U) {
         USB_OTG_INEndpointTypeDef *in = usb_in_ep(usb, epnum);
 
-        SET_BIT(dev->DAINTMSK, USB_OTG_DAINTMSK_IEPM & (1UL << epnum));
+        SET_BIT(dev->DAINTMSK, usb_daintmsk_in_bit(epnum));
         /* USB_ActivateEndpoint: OR config bits only (do not rewrite the whole DIEPCTL). */
         if (READ_BIT(in->DIEPCTL, USB_OTG_DIEPCTL_USBAEP) == 0U) {
             in->DIEPCTL |= (mps & USB_OTG_DIEPCTL_MPSIZ) | (eptyp << 18) | (epnum << 22) |
@@ -1178,7 +1222,7 @@ static bdk_status_t usb_ep_activate(USB_OTG_GlobalTypeDef *usb, uint8_t ep_addr,
     } else {
         USB_OTG_OUTEndpointTypeDef *out = usb_out_ep(usb, epnum);
 
-        SET_BIT(dev->DAINTMSK, (USB_OTG_DAINTMSK_OEPM & (1UL << epnum)) << 16);
+        SET_BIT(dev->DAINTMSK, usb_daintmsk_out_bit(epnum));
         if (READ_BIT(out->DOEPCTL, USB_OTG_DOEPCTL_USBAEP) == 0U) {
             MODIFY_REG(out->DOEPCTL,
                        USB_OTG_DOEPCTL_MPSIZ | USB_OTG_DOEPCTL_EPTYP,
@@ -1214,8 +1258,108 @@ bdk_status_t bdk_usb_ep_close(bdk_usb_id_t id, uint8_t ep_addr)
     usb_ep_deactivate(usb, ep_addr);
     if ((ep_addr & 0x80U) != 0U) {
         usb_in_busy[ep_addr & 0x7FU] = 0U;
+    } else {
+        uint32_t n = (uint32_t)(ep_addr & 0x7FU);
+
+        usb_out_armed[n]         = 0U;
+        usb_out_buf[n]            = NULL;
+        usb_out_arm_xfersize[n]   = 0U;
+        usb_out_pos[n]            = 0U;
+        usb_out_complete[n]       = 0U;
+        usb_out_recv_len[n]       = 0U;
     }
     return BDK_OK;
+}
+
+static void usb_ep_out_start(USB_OTG_GlobalTypeDef *usb, uint32_t epnum, uint16_t len)
+{
+    USB_OTG_OUTEndpointTypeDef *out = usb_out_ep(usb, epnum);
+
+    out->DOEPINT  = USB_OTG_DOEPINT_XFRC;
+    out->DOEPTSIZ = 0U;
+    out->DOEPTSIZ = (USB_OTG_DOEPTSIZ_PKTCNT & (1U << 19)) |
+                    (USB_OTG_DOEPTSIZ_XFRSIZ & (uint32_t)len);
+    CLEAR_BIT(out->DOEPCTL, USB_OTG_DOEPCTL_STALL);
+    SET_BIT(out->DOEPCTL, USB_OTG_DOEPCTL_CNAK | USB_OTG_DOEPCTL_EPENA);
+}
+
+static void usb_ep_out_on_xfrc(USB_OTG_GlobalTypeDef *usb, uint32_t epnum)
+{
+    (void)usb;
+
+    if (epnum == 0U || epnum >= BDK_USB_FS_DEV_EPS || usb_out_armed[epnum] == 0U) {
+        return;
+    }
+
+    /* Length is bytes copied on DATA_UPDT, not DOEPTSIZ (that rounds to words). */
+    if (usb_out_pos[epnum] == 0U) {
+        return;
+    }
+
+    usb_out_recv_len[epnum] = usb_out_pos[epnum];
+    usb_out_complete[epnum] = 1U;
+    usb_out_armed[epnum]    = 0U;
+}
+
+bdk_status_t bdk_usb_ep_out_receive(bdk_usb_id_t id, uint8_t ep_addr, uint8_t *buf,
+                                    uint16_t len)
+{
+    USB_OTG_GlobalTypeDef *usb = usb_global(id);
+    uint32_t epnum = (uint32_t)(ep_addr & 0x7FU);
+    USB_OTG_OUTEndpointTypeDef *out;
+
+    if (usb == NULL || (ep_addr & 0x80U) != 0U || epnum == 0U ||
+        epnum >= BDK_USB_FS_DEV_EPS) {
+        return BDK_ERR_RANGE;
+    }
+    if (len == 0U || buf == NULL) {
+        return BDK_ERR_NULL;
+    }
+    if (len > BDK_USB_EP0_MPS) {
+        return BDK_ERR_RANGE;
+    }
+    if (usb_out_armed[epnum] != 0U || usb_out_complete[epnum] != 0U) {
+        return BDK_ERR_BUSY;
+    }
+
+    out = usb_out_ep(usb, epnum);
+    if (READ_BIT(out->DOEPCTL, USB_OTG_DOEPCTL_USBAEP) == 0U) {
+        return BDK_ERR_STATE;
+    }
+
+    usb_out_buf[epnum]          = buf;
+    usb_out_arm_xfersize[epnum] = len;
+    usb_out_pos[epnum]          = 0U;
+    usb_out_recv_len[epnum]     = 0U;
+    usb_out_complete[epnum]     = 0U;
+    usb_out_armed[epnum]        = 1U;
+    usb_ep_out_start(usb, epnum, len);
+    return BDK_OK;
+}
+
+bdk_status_t bdk_usb_ep_out_recv_poll(bdk_usb_id_t id, uint8_t ep_addr,
+                                      uint16_t *received_len)
+{
+    uint32_t epnum = (uint32_t)(ep_addr & 0x7FU);
+
+    if (usb_global(id) == NULL || (ep_addr & 0x80U) != 0U || epnum == 0U ||
+        epnum >= BDK_USB_FS_DEV_EPS) {
+        return BDK_ERR_RANGE;
+    }
+    if (received_len == NULL) {
+        return BDK_ERR_NULL;
+    }
+
+    if (usb_out_complete[epnum] != 0U) {
+        *received_len           = usb_out_recv_len[epnum];
+        usb_out_complete[epnum] = 0U;
+        usb_out_buf[epnum]      = NULL;
+        return BDK_OK;
+    }
+    if (usb_out_armed[epnum] != 0U) {
+        return BDK_ERR_NODATA;
+    }
+    return BDK_ERR_STATE;
 }
 
 bdk_status_t bdk_usb_ep_in_write(bdk_usb_id_t id, uint8_t ep_addr,
@@ -1264,6 +1408,17 @@ bdk_status_t bdk_usb_ep_in_write(bdk_usb_id_t id, uint8_t ep_addr,
         usb_in_ptr[epnum] = NULL;
     }
     return BDK_OK;
+}
+
+int bdk_usb_ep_in_busy(bdk_usb_id_t id, uint8_t ep_addr)
+{
+    uint32_t epnum = (uint32_t)(ep_addr & 0x7FU);
+
+    if (usb_global(id) == NULL || (ep_addr & 0x80U) == 0U || epnum == 0U ||
+        epnum >= BDK_USB_FS_DEV_EPS) {
+        return 0;
+    }
+    return (usb_in_busy[epnum] != 0U) ? 1 : 0;
 }
 
 bdk_status_t bdk_usb_ep_stall(bdk_usb_id_t id, uint8_t ep_addr)

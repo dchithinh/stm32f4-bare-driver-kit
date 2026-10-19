@@ -5,7 +5,8 @@ STM32F407 Discovery **CN5** (OTG FS) as a USB **CDC ACM** serial gadget using
 **VID:PID `0483:5740`** (ST Virtual COM) and get a TTY (`/dev/ttyACM0` on Linux).
 
 After `SET_CONFIGURATION`, the example sends **`BDK CDC`** on bulk IN (`0x81`)
-about **once per second**. Bulk OUT (host → device) is not implemented.
+about **once per second**. For host → device bulk OUT, see
+[`usb_cdc_echo`](../usb_cdc_echo/).
 
 ## Purpose
 

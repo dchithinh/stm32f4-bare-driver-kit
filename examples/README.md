@@ -34,6 +34,7 @@ Build from `build/`: `cmake --build . --target <app_target>` (target name in eac
 | `spi_dma` | [`spi/dma`](spi/dma/) | SPI1 **`write_dma`** | 16-byte burst, continuous SCK; DMA2 S3 TX / S0 RX CH3 |
 | `timer_pwm` | [`timer/pwm`](timer/pwm/) | PWM (placeholder) | Build only today; future: duty/frequency on scope |
 | `usb_cdc` | [`usb/usb_cdc`](usb/usb_cdc/) | CDC ACM on Discovery **CN5** | Host enumerates **0483:5740** / `ttyACM0`; `cat` prints `BDK CDC` |
+| `usb_cdc_echo` | [`usb/usb_cdc_echo`](usb/usb_cdc_echo/) | CDC bulk OUT + echo | Host types on `ttyACM0` → same bytes on IN |
 | `usb_example` | [`usb/usb_example`](usb/usb_example/) | HAL + ST USBD CDC (reference) | Same CN5 VCP; compare with `usb_cdc` |
 
 UART wiring (Discovery): USART2 **PA2** TX, **PA3** RX, USB–UART, common GND — see [`uart/README.md`](uart/README.md) and `docs/notes/uart.md`.

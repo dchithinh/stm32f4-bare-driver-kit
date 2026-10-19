@@ -139,6 +139,27 @@ uint8_t bdk_usb_ep_is_stalled(bdk_usb_id_t id, uint8_t ep_addr);
 bdk_status_t bdk_usb_ep_in_write(bdk_usb_id_t id, uint8_t ep_addr,
                                  const uint8_t *data, uint16_t len);
 
+/** @brief 1 if a non-zero IN endpoint still has a transfer in progress. */
+int bdk_usb_ep_in_busy(bdk_usb_id_t id, uint8_t ep_addr);
+
+/**
+ * @brief Arm a non-zero OUT endpoint for one host packet (up to endpoint MPS).
+ * @param buf  Receive buffer; must stay valid until @ref bdk_usb_ep_out_recv_poll
+ *             reports completion.
+ * @param len  Max bytes (1..64 for FS bulk).
+ * @return @c BDK_ERR_BUSY if a receive is already in progress on this endpoint.
+ */
+bdk_status_t bdk_usb_ep_out_receive(bdk_usb_id_t id, uint8_t ep_addr, uint8_t *buf,
+                                    uint16_t len);
+
+/**
+ * @brief Check whether the last @ref bdk_usb_ep_out_receive completed (main loop).
+ * @return @c BDK_OK with @p *received_len; @c BDK_ERR_NODATA while still armed;
+ *         @c BDK_ERR_STATE if the endpoint was not armed.
+ */
+bdk_status_t bdk_usb_ep_out_recv_poll(bdk_usb_id_t id, uint8_t ep_addr,
+                                      uint16_t *received_len);
+
 #ifdef __cplusplus
 }
 #endif

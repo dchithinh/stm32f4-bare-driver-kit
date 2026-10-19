@@ -38,6 +38,16 @@ bdk_status_t bdk_cdc_init(bdk_usb_id_t id, const bdk_usb_config_t *hw,
  */
 bdk_status_t bdk_cdc_write(bdk_usb_id_t id, const uint8_t *data, uint16_t len);
 
+/** @brief Non-zero while a bulk IN write is still on the wire. */
+int bdk_cdc_tx_active(bdk_usb_id_t id);
+
+/**
+ * @brief Read one byte received on the CDC bulk OUT endpoint.
+ * @pre Call @ref bdk_cdc_poll from the main loop so OUT packets are drained.
+ * @return @c BDK_ERR_NODATA when the RX ring is empty.
+ */
+bdk_status_t bdk_cdc_poll_in(bdk_usb_id_t id, uint8_t *byte);
+
 /** @brief Last @c SET_CONTROL_LINE_STATE value (bit 0 = DTR). */
 uint8_t bdk_cdc_control_line_state(bdk_usb_id_t id);
 
