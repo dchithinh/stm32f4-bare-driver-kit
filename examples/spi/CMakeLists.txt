@@ -1,3 +1,4 @@
 add_subdirectory(write)
 add_subdirectory(irq_tx)
 add_subdirectory(dma)
+add_subdirectory(8x8_scroll)

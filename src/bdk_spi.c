@@ -75,17 +75,56 @@ static bdk_status_t spi_wait_sr(SPI_TypeDef *regs, uint32_t mask, int want_set)
     uint32_t i;
 
     for (i = 0; i < BDK_SPI_POLL_LOOPS; i++) {
-        uint32_t sr = regs->SR & mask;
+        uint32_t flags = regs->SR & mask;
 
         if (want_set) {
-            if (sr == mask) {
+            if (flags != 0U) {
                 return BDK_OK;
             }
-        } else if (sr == 0U) {
+        } else if (flags == 0U) {
             return BDK_OK;
         }
     }
     return BDK_ERR_TIMEOUT;
+}
+
+static void spi_flush_rx(SPI_TypeDef *regs)
+{
+    uint32_t i;
+
+    for (i = 0U; i < 16U; i++) {
+        if ((regs->SR & SPI_SR_RXNE) == 0U) {
+            break;
+        }
+        (void)spi_dr_read(regs);
+    }
+
+    if ((regs->SR & SPI_SR_OVR) != 0U) {
+        (void)spi_dr_read(regs);
+        (void)regs->SR;
+    }
+}
+
+static void spi_recover_bus(SPI_TypeDef *regs)
+{
+    uint32_t i;
+
+    CLEAR_BIT(regs->CR2, SPI_CR2_TXEIE | SPI_CR2_RXNEIE | SPI_CR2_TXDMAEN |
+                        SPI_CR2_RXDMAEN);
+
+    for (i = 0; i < BDK_SPI_POLL_LOOPS; i++) {
+        if ((regs->SR & SPI_SR_BSY) == 0U) {
+            break;
+        }
+    }
+
+    spi_flush_rx(regs);
+
+    CLEAR_BIT(regs->CR1, SPI_CR1_SPE);
+    for (volatile uint32_t d = 0U; d < 32U; d++) {
+    }
+    SET_BIT(regs->CR1, SPI_CR1_SPE);
+    spi_flush_rx(regs);
 }
 
 static int spi_busy(bdk_spi_id_t id)
@@ -208,14 +247,18 @@ bdk_status_t bdk_spi_transfer(bdk_spi_id_t id, uint16_t tx, uint16_t *rx)
         return BDK_ERR_RANGE;
     }
 
+    spi_flush_rx(regs);
+
     st = spi_wait_sr(regs, SPI_SR_TXE, 1);
     if (st != BDK_OK) {
+        spi_recover_bus(regs);
         return st;
     }
     spi_dr_write(regs, tx);
 
     st = spi_wait_sr(regs, SPI_SR_RXNE, 1);
     if (st != BDK_OK) {
+        spi_recover_bus(regs);
         return st;
     }
     frame = spi_dr_read(regs);
@@ -240,16 +283,25 @@ bdk_status_t bdk_spi_transfer_buf(bdk_spi_id_t id, const void *tx, void *rx,
     }
 
     wide = spi_width16(regs);
+    spi_flush_rx(regs);
+
     for (i = 0; i < len; i++) {
         uint16_t got;
         uint16_t out = spi_buf_load(tx, i, wide);
-        bdk_status_t st = bdk_spi_transfer(id, out, &got);
+        bdk_status_t st = bdk_spi_transfer(id, out, rx != NULL ? &got : NULL);
 
         if (st != BDK_OK) {
+            spi_recover_bus(regs);
             return st;
         }
         spi_buf_store(rx, i, got, wide);
     }
+
+    if (spi_wait_sr(regs, SPI_SR_BSY, 0) != BDK_OK) {
+        spi_recover_bus(regs);
+        return BDK_ERR_TIMEOUT;
+    }
+    spi_flush_rx(regs);
     return BDK_OK;
 }
 
@@ -259,6 +311,15 @@ bdk_status_t bdk_spi_write(bdk_spi_id_t id, const void *data, size_t len)
         return BDK_ERR_NULL;
     }
     return bdk_spi_transfer_buf(id, data, NULL, len);
+}
+
+void bdk_spi_recover(bdk_spi_id_t id)
+{
+    SPI_TypeDef *regs = spi_regs(id);
+
+    if (regs != NULL) {
+        spi_recover_bus(regs);
+    }
 }
 
 bdk_status_t bdk_spi_read(bdk_spi_id_t id, void *data, size_t len)

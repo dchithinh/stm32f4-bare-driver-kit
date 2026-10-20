@@ -53,4 +53,10 @@ void log_log(int level, const char *file, int line, const char *fmt, ...);
  */
 void log_redirect_uart2(uint32_t baud);
 
+/** True after @ref log_redirect_uart2 succeeds. */
+bool log_uart2_ready(void);
+
+/** Raw CRLF-terminated text on USART2 (no formatting). */
+void log_uart2_puts(const char *s);
+
 #endif

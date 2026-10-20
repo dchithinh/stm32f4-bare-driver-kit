@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "bdk_gpio.h"
+#include "bdk_rcc.h"
 #include "bdk_status.h"
 #include "bdk_uart.h"
 #include "stm32f4xx.h"
@@ -61,6 +62,45 @@ static struct {
 static bdk_uart_id_t log_uart_id = BDK_UART_2;
 static bool log_uart_sink;
 
+static void log_uart2_write_raw(const char *s)
+{
+  if (s == NULL) {
+    return;
+  }
+  while (*s != '\0') {
+    bdk_uart_write_byte(log_uart_id, (uint8_t)*s);
+    s++;
+  }
+}
+
+static void log_uart2_write_u32(uint32_t v)
+{
+  char buf[10];
+  int  n = 0;
+
+  if (v == 0U) {
+    log_uart2_write_raw("0");
+    return;
+  }
+  while (v > 0U && n < 10) {
+    buf[n++] = (char)('0' + (v % 10U));
+    v /= 10U;
+  }
+  while (n > 0) {
+    char ch[2] = {buf[--n], '\0'};
+    log_uart2_write_raw(ch);
+  }
+}
+
+static void log_uart2_ready_banner(uint32_t baud)
+{
+  log_uart2_write_raw("\r\nUSART2 PA2 baud ");
+  log_uart2_write_u32(baud);
+  log_uart2_write_raw(" 8N1 (ker=");
+  log_uart2_write_u32(bdk_rcc_usart_ker_clk_hz(log_uart_id));
+  log_uart2_write_raw(" Hz)\r\n");
+}
+
 
 static const char *level_strings[] = {
   "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"
@@ -94,36 +134,23 @@ static void stdout_callback(log_Event *ev) {
 
 static void uart_sink_callback(log_Event *ev)
 {
-  char tbuf[16];
-  char hdr[160];
-  char body[256];
-  char line[420];
-  int hlen;
+  char body[192];
   int blen;
-
-  tbuf[0] = '\0';
-  if (ev->time) {
-    tbuf[strftime(tbuf, sizeof(tbuf), "%H:%M:%S", ev->time)] = '\0';
-  }
-
-  hlen = snprintf(
-      hdr, sizeof(hdr), "%s %-5s ",
-      tbuf, level_strings[ev->level]);
-  if (hlen < 0) {
-    return;
-  }
 
   blen = vsnprintf(body, sizeof(body), ev->fmt, ev->ap);
   if (blen < 0) {
+    log_uart2_write_raw("log: fmt err\r\n");
     return;
   }
-
-  hlen = snprintf(line, sizeof(line), "%s%s\r\n", hdr, body);
-  if (hlen <= 0) {
-    return;
+  if (blen >= (int)sizeof(body)) {
+    blen = (int)sizeof(body) - 1;
+    body[blen] = '\0';
   }
 
-  (void)bdk_uart_write(log_uart_id, (const uint8_t *)line, (size_t)hlen);
+  log_uart2_write_raw(level_strings[ev->level]);
+  log_uart2_write_raw(": ");
+  log_uart2_write_raw(body);
+  log_uart2_write_raw("\r\n");
 }
 
 
@@ -224,6 +251,8 @@ void log_redirect_uart2(uint32_t baud)
   };
 
   if (log_uart_sink) {
+    (void)bdk_uart_init(&uart_cfg);
+    log_uart2_ready_banner(baud);
     return;
   }
 
@@ -239,6 +268,22 @@ void log_redirect_uart2(uint32_t baud)
     return;
   }
   log_uart_sink = true;
+  log_uart2_ready_banner(baud);
+}
+
+
+bool log_uart2_ready(void)
+{
+  return log_uart_sink;
+}
+
+
+void log_uart2_puts(const char *s)
+{
+  if (!log_uart_sink) {
+    return;
+  }
+  log_uart2_write_raw(s);
 }
 
 
