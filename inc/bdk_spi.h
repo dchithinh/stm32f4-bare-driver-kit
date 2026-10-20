@@ -121,6 +121,12 @@ bdk_status_t bdk_spi_transfer_buf(bdk_spi_id_t id, const void *tx, void *rx,
 bdk_status_t bdk_spi_write(bdk_spi_id_t id, const void *data, size_t len);
 
 /**
+ * @brief Clear BSY/OVR and drain stray RX after @ref BDK_ERR_TIMEOUT or a stuck bus.
+ * @param id SPI instance.
+ */
+void bdk_spi_recover(bdk_spi_id_t id);
+
+/**
  * @brief Receive @p len frames while shifting idle bytes (0xFF / 0xFFFF).
  * @param id   SPI instance.
  * @param data Destination; must not be NULL if @p len > 0.

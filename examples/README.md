@@ -32,6 +32,7 @@ Build from `build/`: `cmake --build . --target <app_target>` (target name in eac
 | `spi_write` | [`spi/write`](spi/write/) | Polling SPI1 + GPIO CS | 4-byte MOSI burst; needs **`bdk_spi`** in `src/bdk_spi.c` |
 | `spi_irq_tx` | [`spi/irq_tx`](spi/irq_tx/) | SPI1 **`write_async`** | Same 4 bytes from **TXE IRQ**; CS until `tx_active` |
 | `spi_dma` | [`spi/dma`](spi/dma/) | SPI1 **`write_dma`** | 16-byte burst, continuous SCK; DMA2 S3 TX / S0 RX CH3 |
+| `spi_8x8_scroll` | [`spi/8x8_scroll`](spi/8x8_scroll/) | 3× 8x8Y MAX7219 scroll | 24×8 text marquee; SPI1 + GPIO CS; pin table in README |
 | `timer_pwm` | [`timer/pwm`](timer/pwm/) | PWM (placeholder) | Build only today; future: duty/frequency on scope |
 | `usb_cdc` | [`usb/usb_cdc`](usb/usb_cdc/) | CDC ACM on Discovery **CN5** | Host enumerates **0483:5740** / `ttyACM0`; `cat` prints `BDK CDC` |
 | `usb_cdc_echo` | [`usb/usb_cdc_echo`](usb/usb_cdc_echo/) | CDC bulk OUT + echo | Host types on `ttyACM0` → same bytes on IN |
