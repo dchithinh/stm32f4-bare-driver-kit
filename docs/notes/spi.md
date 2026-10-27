@@ -23,7 +23,9 @@ Do not put ILI9341/ST7735 command tables in `src/bdk_spi.c`.
 | `cpol` / `cpha` | Mode 0 = LOW + 1EDGE (many panels); check the LCD datasheet |
 | `width` | 8-bit commands; some panels want 16-bit pixels (`bdk_spi_set_width`) |
 
-Clock: `bdk_rcc_spi_clk_enable(id)` from init. SPI examples call `bdk_rcc_clock_init()` with `SPI_EXAMPLE_CLOCK_HSI_64MHZ` (64 MHz SYSCLK, APB2 64 MHz); SPI1 `BDK_SPI_BAUD_DIV4` is **16 MHz** SCK. Use `bdk_rcc_get_pclk2_hz()` if you change the tree.
+Clock: `bdk_rcc_spi_clk_enable(id)` from init. SPI examples call `bdk_rcc_clock_init()` with `SPI_EXAMPLE_CLOCK_HSI_64MHZ` (64 MHz SYSCLK, APB2 64 MHz); SPI1 `BDK_SPI_BAUD_DIV4` is **16 MHz** SCK. Use `bdk_rcc_get_pclk1_hz()` / `bdk_rcc_get_pclk2_hz()` if you change the tree.
+
+**F407 max SCK (master):** `BDK_SPI_BAUD_DIV2` → **PCLK / 2**. SPI2/3 on APB1 (**PCLK1 ≤ 42 MHz**) → **~21 MHz** max. SPI1 on APB2 (**PCLK2 ≤ 84 MHz**) → **~42 MHz** max. ILI9341 modules often tolerate ~20 MHz writes; if the panel glitches, increase the divisor in the app.
 
 ## Suggested implement order
 

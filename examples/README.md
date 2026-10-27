@@ -33,6 +33,7 @@ Build from `build/`: `cmake --build . --target <app_target>` (target name in eac
 | `spi_irq_tx` | [`spi/irq_tx`](spi/irq_tx/) | SPI1 **`write_async`** | Same 4 bytes from **TXE IRQ**; CS until `tx_active` |
 | `spi_dma` | [`spi/dma`](spi/dma/) | SPI1 **`write_dma`** | 16-byte burst, continuous SCK; DMA2 S3 TX / S0 RX CH3 |
 | `spi_8x8_scroll` | [`spi/8x8_scroll`](spi/8x8_scroll/) | 3× 8x8Y MAX7219 scroll | 24×8 text marquee; SPI1 + GPIO CS; pin table in README |
+| `spi_lcd_ili9341` | [`spi/lcd_ili9341`](spi/lcd_ili9341/) | 2.4" ILI9341 (Cube wiring) | SPI2 PB13/15, CS **PB9**, DC/RST PD9/10; color bars + RGB fills |
 | `timer_pwm` | [`timer/pwm`](timer/pwm/) | PWM (placeholder) | Build only today; future: duty/frequency on scope |
 | `usb_cdc` | [`usb/usb_cdc`](usb/usb_cdc/) | CDC ACM on Discovery **CN5** | Host enumerates **0483:5740** / `ttyACM0`; `cat` prints `BDK CDC` |
 | `usb_cdc_echo` | [`usb/usb_cdc_echo`](usb/usb_cdc_echo/) | CDC bulk OUT + echo | Host types on `ttyACM0` → same bytes on IN |
