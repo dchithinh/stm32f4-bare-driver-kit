@@ -473,14 +473,14 @@ bdk_status_t bdk_spi_write_dma(bdk_spi_id_t id, const void *data, size_t len)
     CLEAR_BIT(regs->CR2, SPI_CR2_TXEIE | SPI_CR2_RXNEIE);
     SET_BIT(regs->CR2, SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN);
 
-    st = bdk_dma_start(&spi_dma_map[id].rx_stream, &spi_dma_rx_sink, len);
+    st = bdk_dma_start(&spi_dma_map[id].tx_stream, data, len);
     if (st != BDK_OK) {
         CLEAR_BIT(regs->CR2, SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN);
         return st;
     }
-    st = bdk_dma_start(&spi_dma_map[id].tx_stream, data, len);
+    st = bdk_dma_start(&spi_dma_map[id].rx_stream, &spi_dma_rx_sink, len);
     if (st != BDK_OK) {
-        (void)bdk_dma_stop(&spi_dma_map[id].rx_stream);
+        (void)bdk_dma_stop(&spi_dma_map[id].tx_stream);
         CLEAR_BIT(regs->CR2, SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN);
         return st;
     }
@@ -544,6 +544,8 @@ int bdk_spi_dma_tx_active(bdk_spi_id_t id)
         (regs->SR & SPI_SR_BSY) != 0U) {
         return 1;
     }
+    CLEAR_BIT(regs->CR2, SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN);
+    spi_flush_rx(regs);
     spi_dma_tx_run[id] = 0U;
     return 0;
 }
@@ -560,6 +562,8 @@ int bdk_spi_dma_rx_active(bdk_spi_id_t id)
         (regs->SR & SPI_SR_BSY) != 0U) {
         return 1;
     }
+    CLEAR_BIT(regs->CR2, SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN);
+    spi_flush_rx(regs);
     spi_dma_rx_run[id] = 0U;
     return 0;
 }

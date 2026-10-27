@@ -60,3 +60,9 @@ Lab `examples/spi/dma/` (SPI1):
 |-----------|------------|--------|-------|
 | TX | DMA2 | 3 | 3 |
 | RX | DMA2 | 0 | 3 |
+
+Lab `examples/spi/lcd_ili9341_dma/` (SPI2, ILI9341 pixels — **TX DMA only**, RX polled):
+
+| Direction | Controller | Stream | CHSEL |
+|-----------|------------|--------|-------|
+| TX | DMA1 | 4 | 0 |
